@@ -5,17 +5,10 @@ import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import { Button } from "@/components/ui/button"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { ScrollArea } from "@/components/ui/scroll-area"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import {
-  Home,
+  LayoutDashboard,
   Calendar,
   Users,
   Building2,
@@ -24,94 +17,116 @@ import {
   Star,
   Gift,
   Settings,
-  LogOut,
-  ChevronLeft,
-  ChevronRight,
+  Menu,
 } from "lucide-react"
 
 const navigation = [
-  { name: "Dashboard", href: "/", icon: Home },
-  { name: "Calendario", href: "/calendar", icon: Calendar },
-  { name: "Trabajadores", href: "/workers", icon: Users },
-  { name: "Empleadores", href: "/employers", icon: Building2 },
-  { name: "Cotizador", href: "/quote", icon: Calculator },
-  { name: "Mensajes", href: "/messages", icon: MessageSquare },
-  { name: "Calificaciones", href: "/ratings", icon: Star },
-  { name: "Programa Lealtad", href: "/loyalty", icon: Gift },
-  { name: "Configuración", href: "/settings", icon: Settings },
+  {
+    name: "Dashboard",
+    href: "/",
+    icon: LayoutDashboard,
+  },
+  {
+    name: "Calendario",
+    href: "/calendar",
+    icon: Calendar,
+  },
+  {
+    name: "Trabajadores",
+    href: "/workers",
+    icon: Users,
+  },
+  {
+    name: "Empleadores",
+    href: "/employers",
+    icon: Building2,
+  },
+  {
+    name: "Cotizador",
+    href: "/quote",
+    icon: Calculator,
+  },
+  {
+    name: "Mensajes",
+    href: "/messages",
+    icon: MessageSquare,
+  },
+  {
+    name: "Calificaciones",
+    href: "/ratings",
+    icon: Star,
+  },
+  {
+    name: "Programa de Lealtad",
+    href: "/loyalty",
+    icon: Gift,
+  },
+  {
+    name: "Configuración",
+    href: "/settings",
+    icon: Settings,
+  },
 ]
 
-export function Sidebar() {
-  const [collapsed, setCollapsed] = useState(false)
+function SidebarContent() {
   const pathname = usePathname()
 
   return (
-    <div className={cn("flex flex-col bg-card border-r transition-all duration-300", collapsed ? "w-16" : "w-64")}>
-      {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
-        {!collapsed && (
-          <div className="flex items-center space-x-2">
-            <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-              <Building2 className="w-5 h-5 text-primary-foreground" />
-            </div>
-            <span className="font-bold text-lg">ERP Banquetes</span>
-          </div>
-        )}
-        <Button variant="ghost" size="icon" onClick={() => setCollapsed(!collapsed)} className="ml-auto">
-          {collapsed ? <ChevronRight className="w-4 h-4" /> : <ChevronLeft className="w-4 h-4" />}
-        </Button>
+    <div className="flex h-full flex-col">
+      <div className="flex h-14 items-center border-b px-4 lg:h-[60px] lg:px-6">
+        <Link href="/" className="flex items-center gap-2 font-semibold">
+          <Calendar className="h-6 w-6" />
+          <span className="">ERP Banquetes</span>
+        </Link>
       </div>
-
-      {/* Navigation */}
-      <nav className="flex-1 p-4 space-y-2">
-        {navigation.map((item) => {
-          const isActive = pathname === item.href
-          return (
-            <Link key={item.name} href={item.href}>
-              <Button
-                variant={isActive ? "secondary" : "ghost"}
-                className={cn("w-full justify-start", collapsed && "px-2")}
+      <ScrollArea className="flex-1">
+        <nav className="grid items-start px-2 text-sm font-medium lg:px-4">
+          {navigation.map((item) => {
+            const isActive = pathname === item.href
+            return (
+              <Link
+                key={item.name}
+                href={item.href}
+                className={cn(
+                  "flex items-center gap-3 rounded-lg px-3 py-2 text-muted-foreground transition-all hover:text-primary",
+                  isActive && "bg-muted text-primary",
+                )}
               >
-                <item.icon className="w-5 h-5" />
-                {!collapsed && <span className="ml-3">{item.name}</span>}
-              </Button>
-            </Link>
-          )
-        })}
-      </nav>
-
-      {/* User Profile */}
-      <div className="p-4 border-t">
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" className={cn("w-full justify-start p-2", collapsed && "px-2")}>
-              <Avatar className="w-8 h-8">
-                <AvatarImage src="/placeholder-user.jpg" />
-                <AvatarFallback>AD</AvatarFallback>
-              </Avatar>
-              {!collapsed && (
-                <div className="ml-3 text-left">
-                  <p className="text-sm font-medium">Admin</p>
-                  <p className="text-xs text-muted-foreground">admin@banquetes.com</p>
-                </div>
-              )}
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="w-56">
-            <DropdownMenuLabel>Mi Cuenta</DropdownMenuLabel>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <Settings className="w-4 h-4 mr-2" />
-              Configuración
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
-            <DropdownMenuItem>
-              <LogOut className="w-4 h-4 mr-2" />
-              Cerrar Sesión
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
+                <item.icon className="h-4 w-4" />
+                {item.name}
+              </Link>
+            )
+          })}
+        </nav>
+      </ScrollArea>
     </div>
+  )
+}
+
+export function Sidebar() {
+  const [open, setOpen] = useState(false)
+
+  return (
+    <>
+      {/* Mobile sidebar */}
+      <Sheet open={open} onOpenChange={setOpen}>
+        <SheetTrigger asChild>
+          <Button variant="outline" size="icon" className="shrink-0 md:hidden bg-transparent">
+            <Menu className="h-5 w-5" />
+            <span className="sr-only">Toggle navigation menu</span>
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="flex flex-col p-0">
+          <SidebarContent />
+        </SheetContent>
+      </Sheet>
+
+      {/* Desktop sidebar */}
+      <div className="hidden border-r bg-muted/40 md:block">
+        <div className="flex h-full max-h-screen flex-col gap-2">
+          <SidebarContent />
+        </div>
+      </div>
+    </>
   )
 }

@@ -1,91 +1,57 @@
-import { type NextRequest, NextResponse } from "next/server"
+import { NextResponse } from "next/server"
+import { supabase } from "@/lib/supabase"
 
-// Simulación de datos de eventos
-const events = [
-  {
-    id: 1,
-    title: "Boda García-López",
-    date: "2024-01-15",
-    time: "18:00",
-    duration: "6 horas",
-    guests: 120,
-    location: "Salón Primavera",
-    status: "confirmado",
-    workers: 8,
-    employerId: 6,
-  },
-  {
-    id: 2,
-    title: "Evento Corporativo TechCorp",
-    date: "2024-01-16",
-    time: "12:00",
-    duration: "4 horas",
-    guests: 80,
-    location: "Hotel Plaza",
-    status: "pendiente",
-    workers: 5,
-    employerId: 6,
-  },
-]
-
-export async function GET(request: NextRequest) {
+export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url)
-    const date = searchParams.get("date")
     const status = searchParams.get("status")
+    const limit = searchParams.get("limit")
 
-    let filteredEvents = events
+    let query = supabase
+      .from("events")
+      .select(`
+        *,
+        employers (
+          company_name,
+          users (
+            first_name,
+            last_name,
+            email
+          )
+        )
+      `)
+      .order("event_date", { ascending: true })
 
-    if (date) {
-      filteredEvents = filteredEvents.filter((event) => event.date === date)
+    if (status && status !== "all") {
+      query = query.eq("status", status)
     }
 
-    if (status) {
-      filteredEvents = filteredEvents.filter((event) => event.status === status)
+    if (limit) {
+      query = query.limit(Number.parseInt(limit))
     }
 
-    return NextResponse.json({
-      success: true,
-      events: filteredEvents,
-    })
+    const { data, error } = await query
+
+    if (error) throw error
+
+    return NextResponse.json(data)
   } catch (error) {
-    console.error("Error obteniendo eventos:", error)
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+    console.error("Error fetching events:", error)
+    return NextResponse.json({ error: "Error fetching events" }, { status: 500 })
   }
 }
 
-export async function POST(request: NextRequest) {
+export async function POST(request: Request) {
   try {
-    const eventData = await request.json()
+    const body = await request.json()
 
-    // Validar datos requeridos
-    const requiredFields = ["title", "date", "time", "guests", "location"]
-    for (const field of requiredFields) {
-      if (!eventData[field]) {
-        return NextResponse.json({ error: `El campo ${field} es requerido` }, { status: 400 })
-      }
-    }
+    const { data, error } = await supabase.from("events").insert([body]).select()
 
-    // Crear nuevo evento
-    const newEvent = {
-      id: events.length + 1,
-      ...eventData,
-      status: "draft",
-      workers: 0,
-      createdAt: new Date().toISOString(),
-    }
+    if (error) throw error
 
-    events.push(newEvent)
-
-    return NextResponse.json(
-      {
-        success: true,
-        event: newEvent,
-      },
-      { status: 201 },
-    )
+    return NextResponse.json(data[0], { status: 201 })
   } catch (error) {
-    console.error("Error creando evento:", error)
-    return NextResponse.json({ error: "Error interno del servidor" }, { status: 500 })
+    console.error("Error creating event:", error)
+    return NextResponse.json({ error: "Error creating event" }, { status: 500 })
   }
 }

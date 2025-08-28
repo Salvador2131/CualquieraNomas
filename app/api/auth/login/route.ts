@@ -1,25 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server"
+import { supabase } from "@/lib/supabase"
 import jwt from "jsonwebtoken"
-
-// Simulación de base de datos de usuarios
-const users = [
-  {
-    id: 1,
-    email: "admin@banquetes.com",
-    password_hash: "$2b$10$example_hash",
-    first_name: "Admin",
-    last_name: "Sistema",
-    user_type: "admin",
-  },
-  {
-    id: 2,
-    email: "ana.garcia@email.com",
-    password_hash: "$2b$10$example_hash",
-    first_name: "Ana",
-    last_name: "García",
-    user_type: "worker",
-  },
-]
 
 export async function POST(request: NextRequest) {
   try {
@@ -30,26 +11,33 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Email y contraseña son requeridos" }, { status: 400 })
     }
 
-    // Buscar usuario
-    const user = users.find((u) => u.email === email)
-    if (!user) {
+    // Autenticar con Supabase Auth
+    const { data: authData, error: authError } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    })
+
+    if (authError || !authData.user) {
       return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 })
     }
 
-    // Verificar contraseña (en producción usar bcrypt.compare)
-    // const isValidPassword = await bcrypt.compare(password, user.password_hash)
-    const isValidPassword = password === "password123" // Simplificado para demo
+    // Obtener información adicional del usuario desde la tabla users
+    const { data: userData, error: userError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("id", authData.user.id)
+      .single()
 
-    if (!isValidPassword) {
-      return NextResponse.json({ error: "Credenciales inválidas" }, { status: 401 })
+    if (userError || !userData) {
+      return NextResponse.json({ error: "Error al obtener datos del usuario" }, { status: 500 })
     }
 
-    // Generar JWT token
+    // Generar JWT token personalizado
     const token = jwt.sign(
       {
-        userId: user.id,
-        email: user.email,
-        userType: user.user_type,
+        userId: userData.id,
+        email: userData.email,
+        userType: userData.user_type,
       },
       process.env.JWT_SECRET || "secret_key",
       { expiresIn: "24h" },
@@ -60,12 +48,15 @@ export async function POST(request: NextRequest) {
       success: true,
       token,
       user: {
-        id: user.id,
-        email: user.email,
-        firstName: user.first_name,
-        lastName: user.last_name,
-        userType: user.user_type,
+        id: userData.id,
+        email: userData.email,
+        firstName: userData.first_name,
+        lastName: userData.last_name,
+        userType: userData.user_type,
+        phone: userData.phone,
+        address: userData.address,
       },
+      supabaseSession: authData.session,
     })
   } catch (error) {
     console.error("Error en login:", error)
