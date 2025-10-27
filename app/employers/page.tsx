@@ -77,8 +77,10 @@ export default function EmployersPage() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
-  const [selectedEmployer, setSelectedEmployer] = useState<Employer | null>(null);
-  
+  const [selectedEmployer, setSelectedEmployer] = useState<Employer | null>(
+    null
+  );
+
   // Form states
   const [formData, setFormData] = useState({
     company_name: "",
@@ -189,10 +191,14 @@ export default function EmployersPage() {
     try {
       const endpoint = selectedEmployer ? "/api/employers" : "/api/employers";
       const method = selectedEmployer ? "PATCH" : "POST";
-      
+
       const payload = selectedEmployer
         ? { id: selectedEmployer.id, ...formData }
-        : { ...formData, user_id: "temp-user-id", company_type: formData.company_type || "general" };
+        : {
+            ...formData,
+            user_id: "temp-user-id",
+            company_type: formData.company_type || "general",
+          };
 
       const response = await fetch(endpoint, {
         method,
@@ -211,7 +217,9 @@ export default function EmployersPage() {
       setIsEditModalOpen(false);
       fetchEmployers();
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Error desconocido");
+      setSubmitError(
+        error instanceof Error ? error.message : "Error desconocido"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -237,7 +245,9 @@ export default function EmployersPage() {
       setIsDeleteModalOpen(false);
       fetchEmployers();
     } catch (error) {
-      setSubmitError(error instanceof Error ? error.message : "Error desconocido");
+      setSubmitError(
+        error instanceof Error ? error.message : "Error desconocido"
+      );
     } finally {
       setIsSubmitting(false);
     }
@@ -422,19 +432,23 @@ export default function EmployersPage() {
                       <TableCell>{getStatusBadge(employer.status)}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button variant="ghost" size="sm" title="Ver detalles">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            title="Ver detalles"
+                          >
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="sm" 
+                          <Button
+                            variant="ghost"
+                            size="sm"
                             onClick={() => handleEditEmployer(employer)}
                             title="Editar"
                           >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
+                          <Button
+                            variant="ghost"
                             size="sm"
                             onClick={() => handleDeleteEmployer(employer)}
                             title="Eliminar"
@@ -473,7 +487,9 @@ export default function EmployersPage() {
               <Input
                 id="company_name"
                 value={formData.company_name}
-                onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, company_name: e.target.value })
+                }
                 placeholder="Nombre de la empresa"
               />
             </div>
@@ -482,7 +498,9 @@ export default function EmployersPage() {
               <Input
                 id="company_type"
                 value={formData.company_type}
-                onChange={(e) => setFormData({ ...formData, company_type: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, company_type: e.target.value })
+                }
                 placeholder="Ej: Eventos, Corporativo, etc"
               />
             </div>
@@ -492,13 +510,20 @@ export default function EmployersPage() {
                 id="website"
                 type="url"
                 value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, website: e.target.value })
+                }
                 placeholder="https://ejemplo.com"
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="status">Estado</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <Select
+                value={formData.status}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, status: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -511,7 +536,10 @@ export default function EmployersPage() {
             </div>
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsCreateModalOpen(false)}
+            >
               Cancelar
             </Button>
             <Button onClick={submitEmployer} disabled={isSubmitting}>
@@ -542,7 +570,9 @@ export default function EmployersPage() {
               <Input
                 id="edit_company_name"
                 value={formData.company_name}
-                onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, company_name: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
@@ -550,7 +580,9 @@ export default function EmployersPage() {
               <Input
                 id="edit_company_type"
                 value={formData.company_type}
-                onChange={(e) => setFormData({ ...formData, company_type: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, company_type: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
@@ -559,12 +591,19 @@ export default function EmployersPage() {
                 id="edit_website"
                 type="url"
                 value={formData.website}
-                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                onChange={(e) =>
+                  setFormData({ ...formData, website: e.target.value })
+                }
               />
             </div>
             <div className="space-y-2">
               <Label htmlFor="edit_status">Estado</Label>
-              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+              <Select
+                value={formData.status}
+                onValueChange={(value) =>
+                  setFormData({ ...formData, status: value })
+                }
+              >
                 <SelectTrigger>
                   <SelectValue />
                 </SelectTrigger>
@@ -593,8 +632,8 @@ export default function EmployersPage() {
           <DialogHeader>
             <DialogTitle>¿Estás seguro?</DialogTitle>
             <DialogDescription>
-              Esta acción no se puede deshacer. Se eliminará permanentemente el empleador{" "}
-              <strong>{selectedEmployer?.company_name}</strong>.
+              Esta acción no se puede deshacer. Se eliminará permanentemente el
+              empleador <strong>{selectedEmployer?.company_name}</strong>.
             </DialogDescription>
           </DialogHeader>
           {submitError && (
@@ -604,10 +643,17 @@ export default function EmployersPage() {
             </Alert>
           )}
           <DialogFooter>
-            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+            <Button
+              variant="outline"
+              onClick={() => setIsDeleteModalOpen(false)}
+            >
               Cancelar
             </Button>
-            <Button variant="destructive" onClick={deleteEmployer} disabled={isSubmitting}>
+            <Button
+              variant="destructive"
+              onClick={deleteEmployer}
+              disabled={isSubmitting}
+            >
               {isSubmitting ? "Eliminando..." : "Eliminar"}
             </Button>
           </DialogFooter>
@@ -616,4 +662,3 @@ export default function EmployersPage() {
     </div>
   );
 }
-
