@@ -10,6 +10,7 @@ import {
   CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Badge } from "@/components/ui/badge";
 import {
   Table,
@@ -27,6 +28,15 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import {
   Building2,
   Search,
   Filter,
@@ -37,6 +47,7 @@ import {
   Star,
   Globe,
   TrendingUp,
+  AlertCircle,
 } from "lucide-react";
 
 interface Employer {
@@ -61,6 +72,22 @@ export default function EmployersPage() {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
   const [typeFilter, setTypeFilter] = useState("all");
+
+  // Modal states
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [selectedEmployer, setSelectedEmployer] = useState<Employer | null>(null);
+  
+  // Form states
+  const [formData, setFormData] = useState({
+    company_name: "",
+    company_type: "",
+    website: "",
+    status: "active",
+  });
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
 
   useEffect(() => {
     fetchEmployers();
@@ -125,6 +152,95 @@ export default function EmployersPage() {
       month: "short",
       day: "numeric",
     });
+  };
+
+  const handleCreateEmployer = () => {
+    setFormData({
+      company_name: "",
+      company_type: "",
+      website: "",
+      status: "active",
+    });
+    setSubmitError("");
+    setIsCreateModalOpen(true);
+  };
+
+  const handleEditEmployer = (employer: Employer) => {
+    setSelectedEmployer(employer);
+    setFormData({
+      company_name: employer.company_name,
+      company_type: employer.company_type || "",
+      website: employer.website || "",
+      status: employer.status,
+    });
+    setSubmitError("");
+    setIsEditModalOpen(true);
+  };
+
+  const handleDeleteEmployer = (employer: Employer) => {
+    setSelectedEmployer(employer);
+    setIsDeleteModalOpen(true);
+  };
+
+  const submitEmployer = async () => {
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const endpoint = selectedEmployer ? "/api/employers" : "/api/employers";
+      const method = selectedEmployer ? "PATCH" : "POST";
+      
+      const payload = selectedEmployer
+        ? { id: selectedEmployer.id, ...formData }
+        : { ...formData, user_id: "temp-user-id", company_type: formData.company_type || "general" };
+
+      const response = await fetch(endpoint, {
+        method,
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok) {
+        throw new Error(data.message || "Error al guardar empleador");
+      }
+
+      // Success
+      setIsCreateModalOpen(false);
+      setIsEditModalOpen(false);
+      fetchEmployers();
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Error desconocido");
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  const deleteEmployer = async () => {
+    if (!selectedEmployer) return;
+
+    setIsSubmitting(true);
+    setSubmitError("");
+
+    try {
+      const response = await fetch(`/api/employers?id=${selectedEmployer.id}`, {
+        method: "DELETE",
+      });
+
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.message || "Error al eliminar empleador");
+      }
+
+      // Success
+      setIsDeleteModalOpen(false);
+      fetchEmployers();
+    } catch (error) {
+      setSubmitError(error instanceof Error ? error.message : "Error desconocido");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -226,7 +342,7 @@ export default function EmployersPage() {
                 <SelectItem value="premium">Premium</SelectItem>
               </SelectContent>
             </Select>
-            <Button className="w-full md:w-auto">
+            <Button className="w-full md:w-auto" onClick={handleCreateEmployer}>
               <Plus className="mr-2 h-4 w-4" />
               Nuevo Empleador
             </Button>
@@ -252,7 +368,7 @@ export default function EmployersPage() {
               <p className="text-muted-foreground mb-4">
                 Comienza agregando un nuevo empleador
               </p>
-              <Button>
+              <Button onClick={handleCreateEmployer}>
                 <Plus className="mr-2 h-4 w-4" />
                 Agregar Empleador
               </Button>
@@ -306,13 +422,23 @@ export default function EmployersPage() {
                       <TableCell>{getStatusBadge(employer.status)}</TableCell>
                       <TableCell>
                         <div className="flex gap-2">
-                          <Button variant="ghost" size="sm">
+                          <Button variant="ghost" size="sm" title="Ver detalles">
                             <Eye className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm" 
+                            onClick={() => handleEditEmployer(employer)}
+                            title="Editar"
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
-                          <Button variant="ghost" size="sm">
+                          <Button 
+                            variant="ghost" 
+                            size="sm"
+                            onClick={() => handleDeleteEmployer(employer)}
+                            title="Eliminar"
+                          >
                             <Trash2 className="h-4 w-4 text-red-500" />
                           </Button>
                         </div>
@@ -325,6 +451,168 @@ export default function EmployersPage() {
           )}
         </CardContent>
       </Card>
+
+      {/* Create Modal */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Nuevo Empleador</DialogTitle>
+            <DialogDescription>
+              Completa el formulario para crear un nuevo empleador
+            </DialogDescription>
+          </DialogHeader>
+          {submitError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{submitError}</AlertDescription>
+            </Alert>
+          )}
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="company_name">Nombre de la Empresa *</Label>
+              <Input
+                id="company_name"
+                value={formData.company_name}
+                onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+                placeholder="Nombre de la empresa"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="company_type">Tipo de Empresa</Label>
+              <Input
+                id="company_type"
+                value={formData.company_type}
+                onChange={(e) => setFormData({ ...formData, company_type: e.target.value })}
+                placeholder="Ej: Eventos, Corporativo, etc"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="website">Sitio Web</Label>
+              <Input
+                id="website"
+                type="url"
+                value={formData.website}
+                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                placeholder="https://ejemplo.com"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="status">Estado</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Activo</SelectItem>
+                  <SelectItem value="inactive">Inactivo</SelectItem>
+                  <SelectItem value="premium">Premium</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsCreateModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={submitEmployer} disabled={isSubmitting}>
+              {isSubmitting ? "Guardando..." : "Crear"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Modal */}
+      <Dialog open={isEditModalOpen} onOpenChange={setIsEditModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Editar Empleador</DialogTitle>
+            <DialogDescription>
+              Modifica la información del empleador
+            </DialogDescription>
+          </DialogHeader>
+          {submitError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{submitError}</AlertDescription>
+            </Alert>
+          )}
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit_company_name">Nombre de la Empresa *</Label>
+              <Input
+                id="edit_company_name"
+                value={formData.company_name}
+                onChange={(e) => setFormData({ ...formData, company_name: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit_company_type">Tipo de Empresa</Label>
+              <Input
+                id="edit_company_type"
+                value={formData.company_type}
+                onChange={(e) => setFormData({ ...formData, company_type: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit_website">Sitio Web</Label>
+              <Input
+                id="edit_website"
+                type="url"
+                value={formData.website}
+                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit_status">Estado</Label>
+              <Select value={formData.status} onValueChange={(value) => setFormData({ ...formData, status: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="active">Activo</SelectItem>
+                  <SelectItem value="inactive">Inactivo</SelectItem>
+                  <SelectItem value="premium">Premium</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button onClick={submitEmployer} disabled={isSubmitting}>
+              {isSubmitting ? "Guardando..." : "Guardar Cambios"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Delete Confirmation Modal */}
+      <Dialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>¿Estás seguro?</DialogTitle>
+            <DialogDescription>
+              Esta acción no se puede deshacer. Se eliminará permanentemente el empleador{" "}
+              <strong>{selectedEmployer?.company_name}</strong>.
+            </DialogDescription>
+          </DialogHeader>
+          {submitError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{submitError}</AlertDescription>
+            </Alert>
+          )}
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsDeleteModalOpen(false)}>
+              Cancelar
+            </Button>
+            <Button variant="destructive" onClick={deleteEmployer} disabled={isSubmitting}>
+              {isSubmitting ? "Eliminando..." : "Eliminar"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
