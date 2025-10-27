@@ -1,397 +1,331 @@
-"use client"
+"use client";
 
-import { useState } from "react"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Badge } from "@/components/ui/badge"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { useState, useEffect } from "react";
+import { Button } from "@/components/ui/button";
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Search, Plus, MoreHorizontal, Building2, Calendar, DollarSign, Phone, Mail, Globe } from "lucide-react"
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Building2,
+  Search,
+  Filter,
+  Plus,
+  Edit,
+  Trash2,
+  Eye,
+  Star,
+  Globe,
+  TrendingUp,
+} from "lucide-react";
 
-const employers = [
-  {
-    id: 1,
-    name: "Juan Empresario",
-    email: "empresa1@email.com",
-    phone: "+34 666 567 890",
-    company: "Eventos Premium S.L.",
-    website: "www.eventospremium.com",
-    address: "Calle Mayor 123, Madrid",
-    eventsCreated: 15,
-    totalSpent: 45000,
-    status: "activo",
-    joinDate: "2023-01-15",
-    rating: 4.7,
-    lastEvent: "2024-01-15",
-  },
-  {
-    id: 2,
-    name: "Laura Eventos",
-    email: "empresa2@email.com",
-    phone: "+34 666 678 901",
-    company: "Celebraciones Laura",
-    website: "www.celebracioneslaura.com",
-    address: "Avenida Principal 456, Barcelona",
-    eventsCreated: 22,
-    totalSpent: 67500,
-    status: "activo",
-    joinDate: "2022-11-10",
-    rating: 4.9,
-    lastEvent: "2024-01-18",
-  },
-  {
-    id: 3,
-    name: "Carlos Martínez",
-    email: "carlos.martinez@corporativo.com",
-    phone: "+34 666 789 012",
-    company: "Eventos Corporativos CM",
-    website: "www.eventoscm.com",
-    address: "Plaza Central 789, Valencia",
-    eventsCreated: 8,
-    totalSpent: 28000,
-    status: "activo",
-    joinDate: "2023-06-20",
-    rating: 4.5,
-    lastEvent: "2024-01-10",
-  },
-  {
-    id: 4,
-    name: "Ana Rodríguez",
-    email: "ana.rodriguez@bodas.com",
-    phone: "+34 666 890 123",
-    company: "Bodas de Ensueño",
-    website: "www.bodasdeensueno.com",
-    address: "Calle Romántica 321, Sevilla",
-    eventsCreated: 35,
-    totalSpent: 125000,
-    status: "premium",
-    joinDate: "2022-03-05",
-    rating: 4.8,
-    lastEvent: "2024-01-20",
-  },
-  {
-    id: 5,
-    name: "Miguel Torres",
-    email: "miguel.torres@eventos.com",
-    phone: "+34 666 901 234",
-    company: "Torres Eventos",
-    website: "www.torreseventos.com",
-    address: "Avenida Libertad 654, Bilbao",
-    eventsCreated: 3,
-    totalSpent: 8500,
-    status: "inactivo",
-    joinDate: "2023-10-15",
-    rating: 4.2,
-    lastEvent: "2023-12-15",
-  },
-]
+interface Employer {
+  id: string;
+  company_name: string;
+  company_type?: string;
+  website?: string;
+  total_events: number;
+  total_spent: number;
+  rating: number;
+  status: string;
+  created_at: string;
+  users?: {
+    name: string;
+    email: string;
+  };
+}
 
 export default function EmployersPage() {
-  const [searchTerm, setSearchTerm] = useState("")
+  const [employers, setEmployers] = useState<Employer[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("all");
+  const [typeFilter, setTypeFilter] = useState("all");
 
-  const filteredEmployers = employers.filter(
-    (employer) =>
-      employer.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employer.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      employer.email.toLowerCase().includes(searchTerm.toLowerCase()),
-  )
+  useEffect(() => {
+    fetchEmployers();
+  }, []);
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case "premium":
-        return "bg-yellow-100 text-yellow-800"
-      case "activo":
-        return "bg-green-100 text-green-800"
-      case "inactivo":
-        return "bg-gray-100 text-gray-800"
-      default:
-        return "bg-gray-100 text-gray-800"
+  const fetchEmployers = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch("/api/employers");
+      const data = await response.json();
+
+      if (response.ok) {
+        setEmployers(data.employers || []);
+      } else {
+        console.error("Error fetching employers:", data.message);
+      }
+    } catch (error) {
+      console.error("Error fetching employers:", error);
+    } finally {
+      setLoading(false);
     }
+  };
+
+  const filteredEmployers = employers.filter((employer) => {
+    const matchesSearch =
+      employer.company_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      employer.users?.email.toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus =
+      statusFilter === "all" || employer.status === statusFilter;
+    const matchesType =
+      typeFilter === "all" || employer.company_type === typeFilter;
+
+    return matchesSearch && matchesStatus && matchesType;
+  });
+
+  const getStatusBadge = (status: string) => {
+    const statusConfig = {
+      active: { label: "Activo", variant: "default" as const },
+      inactive: { label: "Inactivo", variant: "secondary" as const },
+      premium: { label: "Premium", variant: "default" as const },
+    };
+
+    const config = statusConfig[status as keyof typeof statusConfig] || {
+      label: status,
+      variant: "secondary" as const,
+    };
+
+    return <Badge variant={config.variant}>{config.label}</Badge>;
+  };
+
+  const formatCurrency = (amount: number) => {
+    return new Intl.NumberFormat("es-MX", {
+      style: "currency",
+      currency: "MXN",
+    }).format(amount);
+  };
+
+  const formatDate = (dateString: string) => {
+    return new Date(dateString).toLocaleDateString("es-MX", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen">
+        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-gray-900"></div>
+      </div>
+    );
   }
 
   return (
-    <div className="flex-1 space-y-4 p-8 pt-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-3xl font-bold tracking-tight">Gestión de Empleadores</h2>
-        <Button>
-          <Plus className="w-4 h-4 mr-2" />
-          Nuevo Empleador
-        </Button>
+    <div className="container mx-auto py-8 px-4">
+      <div className="mb-8">
+        <h1 className="text-3xl font-bold tracking-tight mb-2">
+          Gestión de Empleadores
+        </h1>
+        <p className="text-muted-foreground">
+          Administra los empleadores registrados en el sistema
+        </p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-4">
+      {/* Stats Cards */}
+      <div className="grid gap-4 md:grid-cols-4 mb-8">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Empleadores</CardTitle>
+            <CardTitle className="text-sm font-medium">
+              Total Empleadores
+            </CardTitle>
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{employers.length}</div>
-            <p className="text-xs text-muted-foreground">
-              {employers.filter((e) => e.status === "activo" || e.status === "premium").length} activos
-            </p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Eventos Totales</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Activos</CardTitle>
+            <TrendingUp className="h-4 w-4 text-green-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{employers.reduce((acc, e) => acc + e.eventsCreated, 0)}</div>
-            <p className="text-xs text-muted-foreground">Este año</p>
+            <div className="text-2xl font-bold text-green-600">
+              {employers.filter((e) => e.status === "active").length}
+            </div>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Ingresos Totales</CardTitle>
-            <DollarSign className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">
+              Total Invirtido
+            </CardTitle>
+            <TrendingUp className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              €{employers.reduce((acc, e) => acc + e.totalSpent, 0).toLocaleString()}
+              {formatCurrency(
+                employers.reduce((sum, e) => sum + e.total_spent, 0)
+              )}
             </div>
-            <p className="text-xs text-muted-foreground">Facturación total</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Calificación Promedio</CardTitle>
+            <CardTitle className="text-sm font-medium">Total Eventos</CardTitle>
+            <Star className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {(employers.reduce((acc, e) => acc + e.rating, 0) / employers.length).toFixed(1)}
+              {employers.reduce((sum, e) => sum + e.total_events, 0)}
             </div>
-            <p className="text-xs text-muted-foreground">De 5.0 estrellas</p>
           </CardContent>
         </Card>
       </div>
 
-      <Card>
+      {/* Filters and Search */}
+      <Card className="mb-6">
         <CardHeader>
-          <CardTitle>Lista de Empleadores</CardTitle>
-          <CardDescription>Gestiona tus clientes y empresas contratantes</CardDescription>
-          <div className="flex items-center space-x-2">
-            <Search className="w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Buscar empleadores..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="max-w-sm"
-            />
-          </div>
+          <CardTitle>Filtros y Búsqueda</CardTitle>
         </CardHeader>
         <CardContent>
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Empleador</TableHead>
-                <TableHead>Empresa</TableHead>
-                <TableHead>Contacto</TableHead>
-                <TableHead>Eventos</TableHead>
-                <TableHead>Gasto Total</TableHead>
-                <TableHead>Calificación</TableHead>
-                <TableHead>Estado</TableHead>
-                <TableHead className="text-right">Acciones</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {filteredEmployers.map((employer) => (
-                <TableRow key={employer.id}>
-                  <TableCell className="font-medium">
-                    <div className="flex items-center space-x-3">
-                      <Avatar>
-                        <AvatarImage src={`/placeholder-user.jpg`} />
-                        <AvatarFallback>
-                          {employer.name
-                            .split(" ")
-                            .map((n) => n[0])
-                            .join("")}
-                        </AvatarFallback>
-                      </Avatar>
-                      <div>
-                        <div className="font-medium">{employer.name}</div>
-                        <div className="text-sm text-muted-foreground">
-                          Cliente desde {new Date(employer.joinDate).toLocaleDateString("es-ES")}
-                        </div>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{employer.company}</div>
-                      <div className="text-sm text-muted-foreground flex items-center space-x-1">
-                        <Globe className="w-3 h-3" />
-                        <span>{employer.website}</span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="flex items-center space-x-1 text-sm">
-                        <Mail className="w-3 h-3" />
-                        <span>{employer.email}</span>
-                      </div>
-                      <div className="flex items-center space-x-1 text-sm">
-                        <Phone className="w-3 h-3" />
-                        <span>{employer.phone}</span>
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div>
-                      <div className="font-medium">{employer.eventsCreated}</div>
-                      <div className="text-sm text-muted-foreground">
-                        Último: {new Date(employer.lastEvent).toLocaleDateString("es-ES")}
-                      </div>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="font-medium">€{employer.totalSpent.toLocaleString()}</div>
-                    <div className="text-sm text-muted-foreground">
-                      Promedio: €{Math.round(employer.totalSpent / employer.eventsCreated).toLocaleString()}
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <div className="flex items-center space-x-1">
-                      <div className="flex">
-                        {[...Array(5)].map((_, i) => (
-                          <div
-                            key={i}
-                            className={`w-3 h-3 ${
-                              i < Math.floor(employer.rating) ? "text-yellow-400" : "text-gray-300"
-                            }`}
-                          >
-                            ★
-                          </div>
-                        ))}
-                      </div>
-                      <span className="text-sm">{employer.rating}</span>
-                    </div>
-                  </TableCell>
-                  <TableCell>
-                    <Badge className={getStatusColor(employer.status)}>{employer.status}</Badge>
-                  </TableCell>
-                  <TableCell className="text-right">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" className="h-8 w-8 p-0">
-                          <MoreHorizontal className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Acciones</DropdownMenuLabel>
-                        <DropdownMenuItem>Ver perfil completo</DropdownMenuItem>
-                        <DropdownMenuItem>Editar información</DropdownMenuItem>
-                        <DropdownMenuItem>Ver historial de eventos</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>Generar reporte</DropdownMenuItem>
-                        <DropdownMenuItem>Enviar mensaje</DropdownMenuItem>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem>Crear nueva cotización</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+          <div className="flex gap-4 flex-col md:flex-row">
+            <div className="flex-1 relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-gray-400" />
+              <Input
+                placeholder="Buscar por nombre o email..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={statusFilter} onValueChange={setStatusFilter}>
+              <SelectTrigger className="w-full md:w-[180px]">
+                <Filter className="mr-2 h-4 w-4" />
+                <SelectValue placeholder="Estado" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los estados</SelectItem>
+                <SelectItem value="active">Activo</SelectItem>
+                <SelectItem value="inactive">Inactivo</SelectItem>
+                <SelectItem value="premium">Premium</SelectItem>
+              </SelectContent>
+            </Select>
+            <Button className="w-full md:w-auto">
+              <Plus className="mr-2 h-4 w-4" />
+              Nuevo Empleador
+            </Button>
+          </div>
         </CardContent>
       </Card>
 
-      {/* Sección de estadísticas adicionales */}
-      <div className="grid gap-4 md:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Top Empleadores por Eventos</CardTitle>
-            <CardDescription>Los clientes más activos del mes</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {employers
-                .sort((a, b) => b.eventsCreated - a.eventsCreated)
-                .slice(0, 5)
-                .map((employer, index) => (
-                  <div key={employer.id} className="flex items-center space-x-4">
-                    <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center text-sm font-medium">
-                      {index + 1}
-                    </div>
-                    <Avatar className="w-10 h-10">
-                      <AvatarImage src="/placeholder-user.jpg" />
-                      <AvatarFallback>
-                        {employer.name
-                          .split(" ")
-                          .map((n) => n[0])
-                          .join("")}
-                      </AvatarFallback>
-                    </Avatar>
-                    <div className="flex-1">
-                      <p className="text-sm font-medium">{employer.name}</p>
-                      <p className="text-xs text-muted-foreground">{employer.company}</p>
-                    </div>
-                    <div className="text-right">
-                      <p className="text-sm font-medium">{employer.eventsCreated} eventos</p>
-                      <p className="text-xs text-muted-foreground">€{employer.totalSpent.toLocaleString()}</p>
-                    </div>
-                  </div>
-                ))}
+      {/* Table */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Lista de Empleadores</CardTitle>
+          <CardDescription>
+            {filteredEmployers.length} empleador(es) encontrado(s)
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          {filteredEmployers.length === 0 ? (
+            <div className="text-center py-12">
+              <Building2 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+              <h3 className="text-lg font-semibold mb-2">
+                No hay empleadores registrados
+              </h3>
+              <p className="text-muted-foreground mb-4">
+                Comienza agregando un nuevo empleador
+              </p>
+              <Button>
+                <Plus className="mr-2 h-4 w-4" />
+                Agregar Empleador
+              </Button>
             </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader>
-            <CardTitle>Distribución por Estado</CardTitle>
-            <CardDescription>Estado actual de los empleadores</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              {[
-                {
-                  status: "premium",
-                  count: employers.filter((e) => e.status === "premium").length,
-                  color: "bg-yellow-500",
-                },
-                {
-                  status: "activo",
-                  count: employers.filter((e) => e.status === "activo").length,
-                  color: "bg-green-500",
-                },
-                {
-                  status: "inactivo",
-                  count: employers.filter((e) => e.status === "inactivo").length,
-                  color: "bg-gray-500",
-                },
-              ].map((item) => (
-                <div key={item.status} className="flex items-center space-x-4">
-                  <div className={`w-4 h-4 rounded-full ${item.color}`} />
-                  <div className="flex-1">
-                    <p className="text-sm font-medium capitalize">{item.status}</p>
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">{item.count}</p>
-                    <p className="text-xs text-muted-foreground">
-                      {((item.count / employers.length) * 100).toFixed(1)}%
-                    </p>
-                  </div>
-                </div>
-              ))}
+          ) : (
+            <div className="rounded-md border">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Empresa</TableHead>
+                    <TableHead>Contacto</TableHead>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Eventos</TableHead>
+                    <TableHead>Total</TableHead>
+                    <TableHead>Estado</TableHead>
+                    <TableHead>Acciones</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredEmployers.map((employer) => (
+                    <TableRow key={employer.id}>
+                      <TableCell>
+                        <div className="font-medium">
+                          {employer.company_name}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="text-sm">
+                          <div>{employer.users?.name || "N/A"}</div>
+                          <div className="text-muted-foreground">
+                            {employer.users?.email || "N/A"}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">
+                          {employer.company_type || "N/A"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <Star className="mr-1 h-3 w-3" />
+                          {employer.total_events}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <div className="font-medium">
+                          {formatCurrency(employer.total_spent)}
+                        </div>
+                      </TableCell>
+                      <TableCell>{getStatusBadge(employer.status)}</TableCell>
+                      <TableCell>
+                        <div className="flex gap-2">
+                          <Button variant="ghost" size="sm">
+                            <Eye className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                          <Button variant="ghost" size="sm">
+                            <Trash2 className="h-4 w-4 text-red-500" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </div>
-          </CardContent>
-        </Card>
-      </div>
+          )}
+        </CardContent>
+      </Card>
     </div>
-  )
+  );
 }
+

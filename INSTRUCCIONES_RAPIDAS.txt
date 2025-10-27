@@ -1,0 +1,65 @@
+==============================================
+INSTRUCCIONES RÁPIDAS - CONFIGURAR SUPABASE
+==============================================
+
+PASO 1: CONSULTAR ESTADO ACTUAL
+--------------------------------
+1. Ve a: https://supabase.com/dashboard/project/hjtarzunzoedgpsniqc/editor
+
+2. Abre el archivo: scripts/0_CONSULTAR_ESTADO_ACTUAL.sql
+
+3. Copia TODO el contenido del archivo
+
+4. Pega en el SQL Editor de Supabase
+
+5. Ejecuta (botón RUN)
+
+6. COMPARTE CONMIGO LOS RESULTADOS para saber qué tienes
+
+--------------------------------
+
+PASO 2: INSTALAR BASE DE DATOS
+--------------------------------
+1. Si faltan tablas, ejecuta: scripts/1_INSTALAR_TODO_EN_ORDEN.sql
+
+2. Copia TODO el contenido del archivo
+
+3. Pega en el SQL Editor de Supabase
+
+4. Ejecuta (botón RUN)
+
+5. Verifica que no hay errores
+
+--------------------------------
+
+PASO 3: VERIFICAR CONEXIÓN
+--------------------------------
+1. Ejecuta: npm run dev
+
+2. Ve a: http://localhost:3000
+
+3. Prueba login con:
+   Email: admin@ejemplo.com
+   Password: admin123
+
+--------------------------------
+
+ARCHIVOS QUE TIENES:
+✅ scripts/0_CONSULTAR_ESTADO_ACTUAL.sql
+✅ scripts/1_INSTALAR_TODO_EN_ORDEN.sql
+✅ scripts/add-unique-salary-constraint.sql
+✅ .env.local (ya configurado)
+✅ GUIA_SETUP_SUPABASE_COMPLETA.md (instrucciones detalladas)
+✅ ESTADO_FINAL_PROYECTO.md (resumen completo)
+
+--------------------------------
+
+¿QUÉ TE FALTA POR HACER?
+1. Ejecutar scripts SQL en Supabase
+2. Crear 4 archivos faltantes (employers, quote, settings)
+3. Implementar conexiones reales
+
+TIEMPO ESTIMADO: 9-13 horas
+
+==============================================
+

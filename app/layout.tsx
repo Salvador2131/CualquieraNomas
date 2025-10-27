@@ -4,13 +4,14 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Sidebar } from "@/components/sidebar"
+import { redirect } from "next/navigation"
 
 const inter = Inter({ subsets: ["latin"] })
 
 export const metadata: Metadata = {
   title: "ERP Banquetes - Sistema de Gestión",
   description: "Sistema completo de gestión para servicios de banquetes",
-    generator: 'v0.app'
+  generator: 'v0.app'
 }
 
 export default function RootLayout({

@@ -16,8 +16,15 @@ yarn-debug.log*
 yarn-error.log*
 .pnpm-debug.log*
 
-# env files
-.env*
+# env files - IGNORAR archivos con credenciales
+.env.local
+.env.production
+.env.development
+
+# Pero PERMITIR archivos de ejemplo
+!.env.example
+!.env.development.example
+!.env.local.example
 
 # vercel
 .vercel
@@ -25,3 +32,15 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# logs
+logs/
+*.log
+
+# tests
+tests/
+
+# docs (opcional - puedes decidir si subirlos o no)
+# Todos los .md excepto README.md
+# *.md
+# !README.md

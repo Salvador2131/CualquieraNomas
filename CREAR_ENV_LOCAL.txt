@@ -1,0 +1,44 @@
+==========================================
+INSTRUCCIONES PARA CREAR .env.local
+==========================================
+
+PASO 1: Crea el archivo .env.local en la raíz del proyecto
+
+PASO 2: Copia TODO este contenido al archivo:
+
+----------------------------------------
+NEXT_PUBLIC_SUPABASE_URL=https://hjtarzunzoedgpsniqc.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_gZ0f-x1z89Xs9LR5mVpYbw_HEaRvjGz
+SUPABASE_SERVICE_ROLE_KEY=ADJYApVe1nGwmpkDs6UaDAYPrl4fbBVnudCati08FfiawMgCvdmblJZVFLMD+9f+Uw+k497GmkFjLUV58PQ+aw==
+
+NEXT_PUBLIC_APP_URL=http://localhost:3000
+
+JWT_SECRET=f254a2acda5e3353023c7aab1c06d24299bfffcffe5930e5e7ec4e38768c17c8
+ENCRYPTION_KEY=777dd0b344a2b5242169cafa80e7dda9
+RATE_LIMIT_ENABLED=true
+CORS_ORIGIN=http://localhost:3000
+
+LOG_LEVEL=info
+LOG_FILE_ENABLED=true
+LOG_CONSOLE_ENABLED=true
+
+DB_POOL_SIZE=10
+DB_TIMEOUT=30000
+DB_RETRY_ATTEMPTS=3
+
+MONITORING_ENABLED=false
+METRICS_ENABLED=false
+ALERT_EMAIL=admin@ejemplo.com
+
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_SECURE=false
+----------------------------------------
+
+PASO 3: Reinicia el servidor
+npm run dev
+
+==========================================
+¡LISTO! Tu proyecto está configurado
+==========================================
+
