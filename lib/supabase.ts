@@ -1,41 +1,51 @@
 import { createClient as createSupabaseClient } from "@supabase/supabase-js";
 
-// Validar variables de entorno con formato
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// Función para obtener variables de entorno de forma segura
+function getSupabaseConfig() {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  throw new Error("Missing Supabase environment variables");
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error("Missing Supabase environment variables");
+  }
+
+  // Validar formato de URL
+  if (
+    !supabaseUrl.startsWith("https://") &&
+    !supabaseUrl.startsWith("http://")
+  ) {
+    throw new Error("Invalid Supabase URL format");
+  }
+
+  // Validar que la clave anon no sea el placeholder
+  if (
+    supabaseAnonKey.includes("tu-") ||
+    supabaseAnonKey.includes("your-") ||
+    supabaseAnonKey.length < 20
+  ) {
+    console.warn("Supabase anon key appears to be invalid or placeholder");
+  }
+
+  return { supabaseUrl, supabaseAnonKey };
 }
 
-// Validar formato de URL
-if (!supabaseUrl.startsWith("https://") && !supabaseUrl.startsWith("http://")) {
-  throw new Error("Invalid Supabase URL format");
-}
-
-// Validar que la clave anon no sea el placeholder
-if (
-  supabaseAnonKey.includes("tu-") ||
-  supabaseAnonKey.includes("your-") ||
-  supabaseAnonKey.length < 20
-) {
-  console.warn("Supabase anon key appears to be invalid or placeholder");
-}
-
-export const supabase = createSupabaseClient(supabaseUrl, supabaseAnonKey);
-
-// Función helper para crear cliente de Supabase
+// Función principal para crear cliente de Supabase
 export const createClient = () => {
-  return supabase;
+  const { supabaseUrl, supabaseAnonKey } = getSupabaseConfig();
+  return createSupabaseClient(supabaseUrl, supabaseAnonKey);
 };
+
+// Cliente singleton para uso en componentes del cliente
+export const supabase = createClient();
 
 // Cliente para operaciones del servidor con service role key
 export const createServerClient = () => {
+  const { supabaseUrl } = getSupabaseConfig();
   const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
   if (!serviceRoleKey) {
     console.warn("SUPABASE_SERVICE_ROLE_KEY not found, using anon key");
-    return supabase;
+    return createClient();
   }
 
   // Validar service role key no sea placeholder
