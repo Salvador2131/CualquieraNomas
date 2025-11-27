@@ -25,7 +25,9 @@ import {
   Menu,
   Camera,
   Bell,
+  LogOut,
 } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 const navigation = [
   {
@@ -79,6 +81,11 @@ const navigation = [
     icon: FileText,
   },
   {
+    name: "Cotizaciones",
+    href: "/quotes",
+    icon: Calculator,
+  },
+  {
     name: "Integraciones",
     href: "/integrations",
     icon: Plug,
@@ -87,6 +94,7 @@ const navigation = [
 
 function SidebarContent() {
   const pathname = usePathname();
+  const router = useRouter();
   const [notificationsOpen, setNotificationsOpen] = useState(false);
   const [unreadCount, setUnreadCount] = useState(0);
   const [userId, setUserId] = useState<string | null>(null);
@@ -123,6 +131,28 @@ function SidebarContent() {
       return () => clearInterval(interval);
     }
   }, [userId]);
+
+  const handleLogout = async () => {
+    try {
+      // Llamar al endpoint de logout
+      await fetch("/api/auth/logout", {
+        method: "POST",
+      });
+
+      // Limpiar localStorage y sessionStorage
+      localStorage.clear();
+      sessionStorage.clear();
+
+      // Redirigir a la landing page
+      router.push("/");
+      // Forzar recarga para asegurar que se limpia todo
+      window.location.href = "/";
+    } catch (error) {
+      console.error("Error al cerrar sesión:", error);
+      // Aun así redirigir
+      router.push("/");
+    }
+  };
 
   return (
     <div className="flex h-full flex-col">
@@ -182,6 +212,18 @@ function SidebarContent() {
           onOpenChange={setNotificationsOpen}
         />
       )}
+
+      {/* Botón de Logout */}
+      <div className="border-t p-4">
+        <Button
+          onClick={handleLogout}
+          variant="ghost"
+          className="w-full justify-start text-muted-foreground hover:text-destructive"
+        >
+          <LogOut className="h-4 w-4 mr-2" />
+          Cerrar Sesión
+        </Button>
+      </div>
     </div>
   );
 }

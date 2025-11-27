@@ -40,7 +40,18 @@ import {
   Search,
   Plus,
   Filter,
+  Loader2,
+  AlertCircle,
 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Event {
   id: string;
@@ -90,26 +101,55 @@ export default function EventsPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
-  const [estado, setEstado] = useState("");
+  const [estado, setEstado] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [error, setError] = useState("");
+  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [submitError, setSubmitError] = useState("");
+  const [submitSuccess, setSubmitSuccess] = useState(false);
+
+  // Form state
+  const [formData, setFormData] = useState({
+    titulo: "",
+    descripcion: "",
+    tipo_evento: "",
+    fecha_evento: "",
+    hora_inicio: "",
+    hora_fin: "",
+    ubicacion: "",
+    numero_invitados: "",
+    cliente_nombre: "",
+    cliente_email: "",
+    cliente_telefono: "",
+    presupuesto_total: "",
+  });
 
   const fetchEvents = async () => {
     try {
+      setError(""); // Limpiar error anterior
       const params = new URLSearchParams();
-      if (estado) params.append("estado", estado);
+      if (estado && estado !== "all") params.append("estado", estado);
 
-      const response = await fetch(`/api/events?${params.toString()}`);
+      const response = await fetch(
+        `/api/events?${params.toString()}&t=${Date.now()}`
+      ); // Agregar timestamp para evitar cache
       const data = await response.json();
 
-      if (!response.ok) {
+      console.log("Events API Response:", data); // Debug log
+
+      if (response.ok && data.success) {
+        // La respuesta tiene estructura: { success: true, data: { events: [...], pagination: {...} } }
+        const eventsData = data.data?.events || data.events || [];
+        console.log("Events from API:", eventsData); // Debug log
+        setEvents(eventsData);
+      } else {
         throw new Error(data.message || "Error al cargar los eventos");
       }
-
-      setEvents(data.events || []);
     } catch (err) {
       console.error("Error fetching events:", err);
       setError(err instanceof Error ? err.message : "Error desconocido");
+      setEvents([]); // Establecer array vacío en caso de error
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -119,6 +159,82 @@ export default function EventsPage() {
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchEvents();
+  };
+
+  const handleCreateEvent = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsSubmitting(true);
+    setSubmitError("");
+    setSubmitSuccess(false);
+
+    try {
+      const eventData = {
+        titulo: formData.titulo,
+        descripcion: formData.descripcion || undefined,
+        tipo_evento: formData.tipo_evento,
+        fecha_evento: new Date(formData.fecha_evento).toISOString(),
+        hora_inicio: formData.hora_inicio || undefined,
+        hora_fin: formData.hora_fin || undefined,
+        ubicacion: formData.ubicacion,
+        numero_invitados: parseInt(formData.numero_invitados) || 0,
+        cliente_nombre: formData.cliente_nombre,
+        cliente_email: formData.cliente_email,
+        cliente_telefono: formData.cliente_telefono || undefined,
+        presupuesto_total: formData.presupuesto_total
+          ? parseFloat(formData.presupuesto_total)
+          : undefined,
+        estado: "planificacion",
+        servicios_contratados: [],
+        checklist: {},
+      };
+
+      const response = await fetch("/api/events", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(eventData),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.success) {
+        setSubmitSuccess(true);
+        // Add new event to the list immediately
+        if (data.data?.event) {
+          setEvents((prevEvents) => [data.data.event, ...prevEvents]);
+        }
+        // Reset form
+        setFormData({
+          titulo: "",
+          descripcion: "",
+          tipo_evento: "",
+          fecha_evento: "",
+          hora_inicio: "",
+          hora_fin: "",
+          ubicacion: "",
+          numero_invitados: "",
+          cliente_nombre: "",
+          cliente_email: "",
+          cliente_telefono: "",
+          presupuesto_total: "",
+        });
+        // Close modal after 1.5 seconds
+        setTimeout(() => {
+          setIsCreateModalOpen(false);
+          setSubmitSuccess(false);
+        }, 1500);
+      } else {
+        setSubmitError(data.message || "Error al crear el evento");
+      }
+    } catch (error) {
+      console.error("Error creating event:", error);
+      setSubmitError(
+        "Error al crear el evento. Por favor, inténtalo de nuevo."
+      );
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   const filteredEvents = events.filter(
@@ -179,7 +295,7 @@ export default function EventsPage() {
             />
             Actualizar
           </Button>
-          <Button>
+          <Button onClick={() => setIsCreateModalOpen(true)}>
             <Plus className="h-4 w-4 mr-2" />
             Nuevo Evento
           </Button>
@@ -275,7 +391,7 @@ export default function EventsPage() {
               <SelectValue placeholder="Todos los estados" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="">Todos los estados</SelectItem>
+              <SelectItem value="all">Todos los estados</SelectItem>
               {estados.map((estado) => (
                 <SelectItem key={estado.value} value={estado.value}>
                   {estado.label}
@@ -493,6 +609,238 @@ export default function EventsPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Modal de Creación de Evento */}
+      <Dialog open={isCreateModalOpen} onOpenChange={setIsCreateModalOpen}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Crear Nuevo Evento</DialogTitle>
+            <DialogDescription>
+              Completa el formulario para crear un nuevo evento en el sistema
+            </DialogDescription>
+          </DialogHeader>
+
+          {submitSuccess && (
+            <Alert className="bg-green-50 border-green-200">
+              <CheckCircle className="h-4 w-4 text-green-600" />
+              <AlertDescription className="text-green-800">
+                Evento creado exitosamente
+              </AlertDescription>
+            </Alert>
+          )}
+
+          {submitError && (
+            <Alert variant="destructive">
+              <AlertCircle className="h-4 w-4" />
+              <AlertDescription>{submitError}</AlertDescription>
+            </Alert>
+          )}
+
+          <form onSubmit={handleCreateEvent}>
+            <div className="grid grid-cols-2 gap-4 py-4">
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="titulo">Título del Evento *</Label>
+                <Input
+                  id="titulo"
+                  value={formData.titulo}
+                  onChange={(e) =>
+                    setFormData({ ...formData, titulo: e.target.value })
+                  }
+                  placeholder="Ej: Boda de Verano"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tipo_evento">Tipo de Evento *</Label>
+                <Select
+                  value={formData.tipo_evento}
+                  onValueChange={(value) =>
+                    setFormData({ ...formData, tipo_evento: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Selecciona un tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Boda">Boda</SelectItem>
+                    <SelectItem value="Corporativo">Corporativo</SelectItem>
+                    <SelectItem value="Cumpleaños">Cumpleaños</SelectItem>
+                    <SelectItem value="Quinceañera">Quinceañera</SelectItem>
+                    <SelectItem value="Aniversario">Aniversario</SelectItem>
+                    <SelectItem value="Otro">Otro</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="fecha_evento">Fecha del Evento *</Label>
+                <Input
+                  id="fecha_evento"
+                  type="date"
+                  value={formData.fecha_evento}
+                  onChange={(e) =>
+                    setFormData({ ...formData, fecha_evento: e.target.value })
+                  }
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="hora_inicio">Hora de Inicio</Label>
+                <Input
+                  id="hora_inicio"
+                  type="time"
+                  value={formData.hora_inicio}
+                  onChange={(e) =>
+                    setFormData({ ...formData, hora_inicio: e.target.value })
+                  }
+                  placeholder="16:00"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="hora_fin">Hora de Fin</Label>
+                <Input
+                  id="hora_fin"
+                  type="time"
+                  value={formData.hora_fin}
+                  onChange={(e) =>
+                    setFormData({ ...formData, hora_fin: e.target.value })
+                  }
+                  placeholder="23:00"
+                />
+              </div>
+
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="ubicacion">Ubicación *</Label>
+                <Input
+                  id="ubicacion"
+                  value={formData.ubicacion}
+                  onChange={(e) =>
+                    setFormData({ ...formData, ubicacion: e.target.value })
+                  }
+                  placeholder="Ej: Jardín Botánico, Calle Principal 123"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="numero_invitados">Número de Invitados *</Label>
+                <Input
+                  id="numero_invitados"
+                  type="number"
+                  min="1"
+                  value={formData.numero_invitados}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      numero_invitados: e.target.value,
+                    })
+                  }
+                  placeholder="150"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="presupuesto_total">Presupuesto Total</Label>
+                <Input
+                  id="presupuesto_total"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={formData.presupuesto_total}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      presupuesto_total: e.target.value,
+                    })
+                  }
+                  placeholder="25000"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cliente_nombre">Nombre del Cliente *</Label>
+                <Input
+                  id="cliente_nombre"
+                  value={formData.cliente_nombre}
+                  onChange={(e) =>
+                    setFormData({ ...formData, cliente_nombre: e.target.value })
+                  }
+                  placeholder="María González"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cliente_email">Email del Cliente *</Label>
+                <Input
+                  id="cliente_email"
+                  type="email"
+                  value={formData.cliente_email}
+                  onChange={(e) =>
+                    setFormData({ ...formData, cliente_email: e.target.value })
+                  }
+                  placeholder="maria.gonzalez@ejemplo.com"
+                  required
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="cliente_telefono">Teléfono del Cliente</Label>
+                <Input
+                  id="cliente_telefono"
+                  type="tel"
+                  value={formData.cliente_telefono}
+                  onChange={(e) =>
+                    setFormData({
+                      ...formData,
+                      cliente_telefono: e.target.value,
+                    })
+                  }
+                  placeholder="+1234567890"
+                />
+              </div>
+
+              <div className="space-y-2 col-span-2">
+                <Label htmlFor="descripcion">Descripción</Label>
+                <Textarea
+                  id="descripcion"
+                  value={formData.descripcion}
+                  onChange={(e) =>
+                    setFormData({ ...formData, descripcion: e.target.value })
+                  }
+                  placeholder="Descripción detallada del evento..."
+                  rows={3}
+                />
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  setIsCreateModalOpen(false);
+                  setSubmitError("");
+                  setSubmitSuccess(false);
+                }}
+                disabled={isSubmitting}
+              >
+                Cancelar
+              </Button>
+              <Button type="submit" disabled={isSubmitting}>
+                {isSubmitting && (
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                )}
+                {isSubmitting ? "Creando..." : "Crear Evento"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

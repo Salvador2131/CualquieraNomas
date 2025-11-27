@@ -257,7 +257,7 @@ async function generatePerformanceReport(parameters: any) {
   }
 
   const averageRating = evaluations?.length > 0 
-    ? evaluations.reduce((sum, eval) => sum + eval.overall_rating, 0) / evaluations.length 
+    ? evaluations.reduce((sum, evaluation) => sum + evaluation.overall_rating, 0) / evaluations.length 
     : 0;
 
   return {
@@ -296,9 +296,9 @@ async function generateClientSatisfactionReport(parameters: any) {
 
   const totalEvaluations = evaluations?.length || 0;
   const averageRating = totalEvaluations > 0 
-    ? evaluations.reduce((sum, eval) => sum + eval.overall_rating, 0) / totalEvaluations 
+    ? evaluations.reduce((sum, evaluation) => sum + evaluation.overall_rating, 0) / totalEvaluations 
     : 0;
-  const wouldRecommend = evaluations?.filter(eval => eval.would_recommend).length || 0;
+  const wouldRecommend = evaluations?.filter(evaluation => evaluation.would_recommend).length || 0;
 
   return {
     summary: {

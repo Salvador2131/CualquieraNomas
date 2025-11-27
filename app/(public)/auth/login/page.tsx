@@ -41,7 +41,7 @@ export default function LoginPage() {
       const data = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.message || "Error al iniciar sesión");
+        throw new Error(data.message || "Error en sistema");
       }
 
       // Redireccionar según el rol
@@ -53,7 +53,7 @@ export default function LoginPage() {
         router.push("/dashboard");
       }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Error desconocido");
+      setError("Error en sistema");
     } finally {
       setLoading(false);
     }

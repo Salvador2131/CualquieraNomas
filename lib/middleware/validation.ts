@@ -123,3 +123,17 @@ export function createSuccessResponse<T>(
   );
 }
 
+export function createValidationErrorResponse(
+  details: any[],
+  message: string = "Error de validación",
+  status: number = 400
+) {
+  return NextResponse.json(
+    {
+      success: false,
+      error: message,
+      details,
+    },
+    { status }
+  );
+}

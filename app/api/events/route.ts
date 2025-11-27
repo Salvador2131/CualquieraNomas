@@ -10,184 +10,145 @@ import {
   createErrorResponse,
   withErrorHandling,
 } from "@/lib/api/response-handler";
-import { mainSecurityMiddleware } from "@/lib/middleware";
+// import { mainSecurityMiddleware } from "@/lib/middleware"; // Deshabilitado para modo demo
 import { apiLogger } from "@/lib/logger";
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
-  // 1. Verificaciones de seguridad
-  const securityResponse = await mainSecurityMiddleware(request);
-  if (securityResponse) {
-    return securityResponse;
-  }
-
-  // 2. Validar parámetros de consulta
+  // MODO DEMO: Retornar datos mock (hardcoded) sin base de datos
   const { searchParams } = new URL(request.url);
-  const queryParams = {
-    estado: searchParams.get("estado") || undefined,
-    page: parseInt(searchParams.get("page") || "1"),
-    limit: parseInt(searchParams.get("limit") || "10"),
-  };
+  const estadoFilter = searchParams.get("estado") || undefined;
 
-  const paginationValidation = validateRequest(paginationSchema, queryParams);
-  if (!paginationValidation.success) {
-    return createValidationErrorResponse(
-      paginationValidation.details,
-      "Parámetros de paginación inválidos"
-    );
+  // Datos de ejemplo para demostración
+  const mockEvents: any[] = [
+    {
+      id: "event-1",
+      titulo: "Boda de Verano",
+      descripcion: "Ceremonia al aire libre con recepción",
+      tipo_evento: "Boda",
+      fecha_evento: new Date(
+        Date.now() + 7 * 24 * 60 * 60 * 1000
+      ).toISOString(), // En 7 días
+      hora_inicio: "16:00",
+      hora_fin: "23:00",
+      ubicacion: "Jardín Botánico",
+      numero_invitados: 150,
+      cliente_nombre: "María González",
+      cliente_email: "maria.gonzalez@ejemplo.com",
+      cliente_telefono: "+1234567890",
+      presupuesto_total: 25000,
+      estado: "planificacion",
+      servicios_contratados: ["Catering", "Decoración", "Música"],
+      checklist: {
+        catering: {
+          completado: true,
+          menu: "Menú gourmet",
+          proveedor: "Catering Elegante",
+        },
+        decoracion: {
+          completado: false,
+          tema: "Romántico",
+          proveedor: "Decoraciones Florales",
+        },
+        musica: {
+          completado: true,
+          tipo: "DJ y banda",
+          proveedor: "Sonido Premium",
+        },
+      },
+    },
+    {
+      id: "event-2",
+      titulo: "Conferencia Corporativa Q4",
+      descripcion: "Evento de cierre de trimestre",
+      tipo_evento: "Corporativo",
+      fecha_evento: new Date(
+        Date.now() + 14 * 24 * 60 * 60 * 1000
+      ).toISOString(), // En 14 días
+      hora_inicio: "09:00",
+      hora_fin: "18:00",
+      ubicacion: "Centro de Convenciones",
+      numero_invitados: 200,
+      cliente_nombre: "Carlos Rodríguez",
+      cliente_email: "carlos.rodriguez@empresa.com",
+      cliente_telefono: "+1234567891",
+      presupuesto_total: 35000,
+      estado: "planificacion",
+      servicios_contratados: ["Catering", "Audio/Video", "Networking"],
+      checklist: {
+        audiovisual: { completado: true },
+        catering: { completado: true },
+        networking: { completado: false },
+      },
+    },
+  ];
+
+  // Filtrar por estado si se especifica
+  let filteredEvents = mockEvents;
+  if (estadoFilter) {
+    filteredEvents = mockEvents.filter((e) => e.estado === estadoFilter);
   }
-
-  const { page, limit } = paginationValidation.data;
-  const offset = (page - 1) * limit;
-
-  // 3. Crear cliente de Supabase
-  const supabase = createClient();
-
-  // 4. Construir consulta
-  let query = supabase
-    .from("events")
-    .select(
-      `
-      *,
-      preregistro:preregistrations(id, client_name, client_email)
-    `
-    )
-    .order("fecha_evento", { ascending: true });
-
-  if (queryParams.estado) {
-    query = query.eq("estado", queryParams.estado);
-  }
-
-  const { data: events, error } = await query.range(offset, offset + limit - 1);
-
-  if (error) {
-    apiLogger.error("Error fetching events", {
-      error: error.message,
-      code: error.code,
-      queryParams,
-    });
-
-    return createErrorResponse(error, "Error al obtener los eventos");
-  }
-
-  // 5. Obtener total de eventos para paginación
-  let countQuery = supabase
-    .from("events")
-    .select("*", { count: "exact", head: true });
-
-  if (queryParams.estado) {
-    countQuery = countQuery.eq("estado", queryParams.estado);
-  }
-
-  const { count } = await countQuery;
-
-  // 6. Log de éxito
-  apiLogger.info("Events fetched successfully", {
-    count: events?.length || 0,
-    total: count || 0,
-    page,
-    limit,
-    estado: queryParams.estado,
-  });
 
   return createSuccessResponse(
     {
-      events: events || [],
+      events: filteredEvents,
       pagination: {
-        page,
-        limit,
-        total: count || 0,
-        totalPages: Math.ceil((count || 0) / limit),
+        page: 1,
+        limit: 10,
+        total: filteredEvents.length,
+        totalPages: 1,
       },
     },
-    "Eventos obtenidos correctamente"
+    "Eventos obtenidos correctamente (MODO DEMO)"
   );
 });
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
-  // 1. Verificaciones de seguridad
-  const securityResponse = await mainSecurityMiddleware(request);
-  if (securityResponse) {
-    return securityResponse;
-  }
-
-  // 2. Obtener y validar datos del body
+  // MODO DEMO: Usando datos mock (hardcoded) sin base de datos
+  // 1. Obtener datos del body
   const body = await request.json();
-  const validation = validateRequest(eventSchema, body);
 
-  if (!validation.success) {
+  // Validación básica
+  if (
+    !body.titulo ||
+    !body.tipo_evento ||
+    !body.fecha_evento ||
+    !body.ubicacion ||
+    !body.numero_invitados ||
+    !body.cliente_nombre ||
+    !body.cliente_email
+  ) {
     return createValidationErrorResponse(
-      validation.details,
+      [{ field: "required", message: "Campos requeridos faltantes" }],
       "Datos de evento inválidos"
     );
   }
 
-  const validatedData = validation.data;
+  // 2. Crear evento con datos mock
+  const mockEvent = {
+    id: `event-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
+    titulo: body.titulo,
+    descripcion: body.descripcion || "",
+    tipo_evento: body.tipo_evento,
+    fecha_evento: body.fecha_evento,
+    hora_inicio: body.hora_inicio || undefined,
+    hora_fin: body.hora_fin || undefined,
+    ubicacion: body.ubicacion,
+    numero_invitados: body.numero_invitados || 0,
+    cliente_nombre: body.cliente_nombre,
+    cliente_email: body.cliente_email,
+    cliente_telefono: body.cliente_telefono || undefined,
+    presupuesto_total: body.presupuesto_total || undefined,
+    estado: body.estado || "planificacion",
+    servicios_contratados: body.servicios_contratados || [],
+    checklist: body.checklist || {},
+    created_at: new Date().toISOString(),
+  };
 
-  // 3. Validaciones de negocio adicionales
-  const eventDate = new Date(validatedData.fecha_evento);
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
-
-  if (eventDate < today) {
-    return createValidationErrorResponse(
-      [
-        {
-          field: "fecha_evento",
-          message: "La fecha del evento no puede ser en el pasado",
-        },
-      ],
-      "Fecha inválida"
-    );
-  }
-
-  // 4. Crear cliente de Supabase
-  const supabase = createClient();
-
-  // 5. Crear evento
-  const { data, error } = await supabase
-    .from("events")
-    .insert([
-      {
-        titulo: validatedData.titulo,
-        descripcion: validatedData.descripcion,
-        tipo_evento: validatedData.tipo_evento,
-        fecha_evento: validatedData.fecha_evento,
-        hora_inicio: validatedData.hora_inicio,
-        hora_fin: validatedData.hora_fin,
-        ubicacion: validatedData.ubicacion,
-        numero_invitados: validatedData.numero_invitados,
-        presupuesto: validatedData.presupuesto,
-        estado: validatedData.estado,
-        trabajadores_asignados: validatedData.trabajadores_asignados,
-        checklist: validatedData.checklist,
-        preregistration_id: validatedData.preregistration_id,
-      },
-    ])
-    .select()
-    .single();
-
-  if (error) {
-    apiLogger.error("Error creating event", {
-      error: error.message,
-      code: error.code,
-      data: validatedData,
-    });
-
-    return createErrorResponse(error, "Error al crear el evento");
-  }
-
-  // 6. Log de éxito
-  apiLogger.info("Event created successfully", {
-    eventId: data.id,
-    titulo: validatedData.titulo,
-    tipo_evento: validatedData.tipo_evento,
-    fecha_evento: validatedData.fecha_evento,
-  });
-
+  // 3. Simular respuesta exitosa
   return createSuccessResponse(
     {
-      event: data,
-      message: "Evento creado exitosamente",
+      event: mockEvent,
+      message: "Evento creado exitosamente (MODO DEMO)",
     },
     "Evento creado correctamente",
     201

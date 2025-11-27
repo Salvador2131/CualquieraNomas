@@ -7,7 +7,7 @@ export async function POST(request: NextRequest) {
 
     if (!email || !password) {
       return NextResponse.json(
-        { message: "Email y contraseña son requeridos" },
+        { message: "Error en sistema" },
         { status: 400 }
       );
     }
@@ -23,14 +23,14 @@ export async function POST(request: NextRequest) {
 
     if (authError) {
       return NextResponse.json(
-        { message: "Credenciales inválidas" },
+        { message: "Error en sistema" },
         { status: 401 }
       );
     }
 
     if (!authData.user) {
       return NextResponse.json(
-        { message: "Usuario no encontrado" },
+        { message: "Error en sistema" },
         { status: 401 }
       );
     }
@@ -44,7 +44,7 @@ export async function POST(request: NextRequest) {
 
     if (userError || !userData) {
       return NextResponse.json(
-        { message: "Error al obtener información del usuario" },
+        { message: "Error en sistema" },
         { status: 500 }
       );
     }
@@ -78,9 +78,6 @@ export async function POST(request: NextRequest) {
     return response;
   } catch (error) {
     console.error("Error en login:", error);
-    return NextResponse.json(
-      { message: "Error interno del servidor" },
-      { status: 500 }
-    );
+    return NextResponse.json({ message: "Error en sistema" }, { status: 500 });
   }
 }

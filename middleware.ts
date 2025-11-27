@@ -9,7 +9,9 @@ export function middleware(request: NextRequest) {
     "http://localhost:3000",
   ];
 
-  const isAllowed = allowedOrigins.some((allowed) => allowed && origin === allowed);
+  const isAllowed = allowedOrigins.some(
+    (allowed) => allowed && origin === allowed
+  );
 
   // Manejar preflight requests
   if (request.method === "OPTIONS") {
@@ -26,13 +28,19 @@ export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
 
   // Rutas públicas que no requieren autenticación
-  const publicRoutes = ["/", "/auth/login", "/preregister", "/gallery"];
+  const publicRoutes = [
+    "/",
+    "/auth/login",
+    "/preregister",
+    "/gallery",
+    "/workers",
+    "/quotes",
+  ];
 
   // Rutas que requieren autenticación
   const protectedRoutes = [
     "/dashboard",
     "/worker-dashboard",
-    "/workers",
     "/employers",
     "/calendar",
     "/quote",
@@ -42,10 +50,30 @@ export function middleware(request: NextRequest) {
     "/settings",
   ];
 
-  // Verificar si la ruta actual es pública
+  // Verificar si la ruta actual es pública (PRIMERO, antes de verificar protegidas)
   const isPublicRoute = publicRoutes.some((route) =>
     pathname.startsWith(route)
   );
+
+  // Si es una ruta pública, permitir acceso sin verificar autenticación
+  if (isPublicRoute) {
+    const response = NextResponse.next();
+
+    // Agregar CORS headers
+    if (isAllowed || origin) {
+      response.headers.set("Access-Control-Allow-Origin", origin || "*");
+      response.headers.set(
+        "Access-Control-Allow-Methods",
+        "GET, POST, PUT, DELETE, OPTIONS"
+      );
+      response.headers.set(
+        "Access-Control-Allow-Headers",
+        "Content-Type, Authorization"
+      );
+    }
+
+    return response;
+  }
 
   // Verificar si la ruta actual es protegida
   const isProtectedRoute = protectedRoutes.some((route) =>
@@ -116,8 +144,14 @@ export function middleware(request: NextRequest) {
   // Agregar CORS headers a todas las respuestas
   if (isAllowed || origin) {
     response.headers.set("Access-Control-Allow-Origin", origin || "*");
-    response.headers.set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-    response.headers.set("Access-Control-Allow-Headers", "Content-Type, Authorization");
+    response.headers.set(
+      "Access-Control-Allow-Methods",
+      "GET, POST, PUT, DELETE, OPTIONS"
+    );
+    response.headers.set(
+      "Access-Control-Allow-Headers",
+      "Content-Type, Authorization"
+    );
   }
 
   return response;
