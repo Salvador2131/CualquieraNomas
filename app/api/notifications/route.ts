@@ -15,6 +15,10 @@ import {
 } from "@/lib/api/response-handler";
 import { mainSecurityMiddleware } from "@/lib/middleware";
 import { apiLogger } from "@/lib/logger";
+import { createClient } from "@/lib/supabase";
+import {
+  getCurrentOrganizationId,
+} from "@/lib/utils/api-organization-filter";
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
   // 1. Verificaciones de seguridad
@@ -47,14 +51,20 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     );
   }
 
-  // 3. Obtener notificaciones
+  // 3. Obtener organization_id del usuario
+  const supabase = createClient();
+  const organizationId = await getCurrentOrganizationId(request, supabase);
+
+  // 4. Obtener notificaciones (filtradas por organización)
   try {
     const notifications = await notificationService.getUserNotifications(
       queryParams.userId,
-      limitValidation.data.limit
+      limitValidation.data.limit,
+      organizationId || undefined
     );
     const stats = await notificationService.getNotificationStats(
-      queryParams.userId
+      queryParams.userId,
+      organizationId || undefined
     );
 
     // 4. Log de éxito

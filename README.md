@@ -152,3 +152,66 @@ npm run dev
 - Precio sugerido: $500-2000/mes
 - Personalización total
 - Control completo de la plataforma
+
+## 🔄 Migraciones de Base de Datos
+
+Este proyecto usa **Supabase CLI + GitHub Actions** para gestionar migraciones automáticamente.
+
+### Configuración Rápida
+
+1. **Instalar dependencias:**
+
+   ```bash
+   npm install
+   ```
+
+2. **Supabase CLI se instala automáticamente:**
+
+   El CLI está incluido como dependencia de desarrollo. Se instala con:
+
+   ```bash
+   npm install
+   ```
+
+   **Verificar:**
+
+   ```bash
+   npx supabase --version
+   ```
+
+   O usar los scripts de npm:
+
+   ```bash
+   npm run supabase:status
+   ```
+
+3. **Configurar Supabase CLI:**
+
+   ```bash
+   # Windows (PowerShell)
+   .\scripts\setup-supabase-cli.ps1
+
+   # Linux/Mac
+   bash scripts/setup-supabase-cli.sh
+   ```
+
+4. **Vincular proyecto:**
+
+   ```bash
+   supabase link --project-ref <tu-project-ref>
+   ```
+
+5. **Configurar GitHub Secrets:**
+   - `SUPABASE_ACCESS_TOKEN`
+   - `SUPABASE_PROJECT_REF`
+   - `SUPABASE_DB_PASSWORD` (opcional)
+
+### Crear Migración
+
+```bash
+npm run supabase:migration:new nombre_descriptivo
+```
+
+Edita el archivo SQL en `supabase/migrations/` y haz commit. GitHub Actions aplicará la migración automáticamente.
+
+📚 **Ver guía completa:** `GUIA_SUPABASE_CLI.md`

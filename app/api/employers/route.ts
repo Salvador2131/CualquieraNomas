@@ -12,6 +12,10 @@ import {
 } from "@/lib/api/response-handler";
 import { mainSecurityMiddleware } from "@/lib/middleware";
 import { apiLogger } from "@/lib/logger";
+import {
+  getCurrentOrganizationId,
+  addOrganizationFilter,
+} from "@/lib/utils/api-organization-filter";
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
   // 1. Verificaciones de seguridad
@@ -20,7 +24,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     return securityResponse;
   }
 
-  // 2. Validar parámetros de consulta
+  // 2. Validar par?metros de consulta
   const { searchParams } = new URL(request.url);
   const queryParams = {
     status: searchParams.get("status") || undefined,
@@ -33,7 +37,7 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   if (!paginationValidation.success) {
     return createValidationErrorResponse(
       paginationValidation.details,
-      "Parámetros de paginación inválidos"
+      "Par?metros de paginaci?n inv?lidos"
     );
   }
 
@@ -43,7 +47,17 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   // 3. Crear cliente de Supabase
   const supabase = createClient();
 
-  // 4. Construir consulta
+  // 3.1. Obtener organization_id del usuario autenticado
+  const organizationId = await getCurrentOrganizationId(request, supabase);
+  if (!organizationId) {
+    return createErrorResponse(
+      { message: "No se pudo determinar la organizaci?n del usuario" },
+      "Error de autenticaci?n",
+      401
+    );
+  }
+
+  // 4. Construir consulta con filtro de organizaci?n
   let query = supabase
     .from("employers")
     .select(
@@ -58,6 +72,9 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     )
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
+
+  // Aplicar filtro de organizaci?n
+  query = addOrganizationFilter(query, organizationId);
 
   if (queryParams.status) {
     query = query.eq("status", queryParams.status);
@@ -79,12 +96,14 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     return createErrorResponse(error, "Error al obtener empleadores");
   }
 
-  // 5. Obtener total de registros para paginación
-  const { count } = await supabase
+  // 5. Obtener total de registros para paginaci?n (con filtro de organizaci?n)
+  let countQuery = supabase
     .from("employers")
     .select("*", { count: "exact", head: true });
+  countQuery = addOrganizationFilter(countQuery, organizationId);
+  const { count } = await countQuery;
 
-  // 6. Log de éxito
+  // 6. Log de ?xito
   apiLogger.info("Employers fetched successfully", {
     count: employers?.length || 0,
     total: count || 0,
@@ -122,7 +141,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   if (!validation.success) {
     return createValidationErrorResponse(
       validation.details,
-      "Datos de empleador inválidos"
+      "Datos de empleador inv?lidos"
     );
   }
 
@@ -131,7 +150,17 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   // 3. Crear cliente de Supabase
   const supabase = createClient();
 
-  // 4. Crear empleador
+  // 3.1. Obtener organization_id del usuario autenticado
+  const organizationId = await getCurrentOrganizationId(request, supabase);
+  if (!organizationId) {
+    return createErrorResponse(
+      { message: "No se pudo determinar la organizaci?n del usuario" },
+      "Error de autenticaci?n",
+      401
+    );
+  }
+
+  // 4. Crear empleador (con organization_id)
   const { data, error } = await supabase
     .from("employers")
     .insert({
@@ -143,6 +172,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       total_spent: validatedData.total_spent,
       rating: validatedData.rating,
       status: validatedData.status,
+      organization_id: organizationId, // Agregar organization_id
     })
     .select(
       `
@@ -166,7 +196,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     return createErrorResponse(error, "Error al crear empleador");
   }
 
-  // 5. Log de éxito
+  // 5. Log de ?xito
   apiLogger.info("Employer created successfully", {
     employerId: data.id,
     userId: validatedData.user_id,
@@ -197,21 +227,46 @@ export const PATCH = withErrorHandling(async (request: NextRequest) => {
   if (!id) {
     return createValidationErrorResponse(
       [{ field: "id", message: "id es requerido" }],
-      "Parámetros inválidos"
+      "Par?metros inv?lidos"
     );
   }
 
-  // 3. Validar datos de actualización
+  // 3. Validar datos de actualizaci?n
   const validation = validateRequest(employerSchema.partial(), updateData);
   if (!validation.success) {
     return createValidationErrorResponse(
       validation.details,
-      "Datos de actualización inválidos"
+      "Datos de actualizaci?n inv?lidos"
     );
   }
 
   // 4. Crear cliente de Supabase
   const supabase = createClient();
+
+  // 4.1. Obtener organization_id y validar que el empleador pertenezca a la organizaci?n
+  const organizationId = await getCurrentOrganizationId(request, supabase);
+  if (!organizationId) {
+    return createErrorResponse(
+      { message: "No se pudo determinar la organizaci?n del usuario" },
+      "Error de autenticaci?n",
+      401
+    );
+  }
+
+  // Verificar que el empleador pertenezca a la organizaci?n del usuario
+  const { data: existingEmployer } = await supabase
+    .from("employers")
+    .select("organization_id")
+    .eq("id", id)
+    .single();
+
+  if (!existingEmployer || existingEmployer.organization_id !== organizationId) {
+    return createErrorResponse(
+      { message: "Empleador no encontrado o no pertenece a tu organizaci?n" },
+      "Error de autorizaci?n",
+      403
+    );
+  }
 
   // 5. Actualizar empleador
   const { data, error } = await supabase
@@ -221,6 +276,7 @@ export const PATCH = withErrorHandling(async (request: NextRequest) => {
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
+    .eq("organization_id", organizationId) // Asegurar que pertenece a la organizaci?n
     .select(
       `
       *,
@@ -244,7 +300,7 @@ export const PATCH = withErrorHandling(async (request: NextRequest) => {
     return createErrorResponse(error, "Error al actualizar empleador");
   }
 
-  // 6. Log de éxito
+  // 6. Log de ?xito
   apiLogger.info("Employer updated successfully", {
     employerId: id,
     updatedFields: Object.keys(validation.data),
@@ -266,22 +322,36 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
     return securityResponse;
   }
 
-  // 2. Validar parámetros
+  // 2. Validar par?metros
   const { searchParams } = new URL(request.url);
   const id = searchParams.get("id");
 
   if (!id) {
     return createValidationErrorResponse(
       [{ field: "id", message: "id es requerido" }],
-      "Parámetros inválidos"
+      "Par?metros inv?lidos"
     );
   }
 
   // 3. Crear cliente de Supabase
   const supabase = createClient();
 
-  // 4. Eliminar empleador
-  const { error } = await supabase.from("employers").delete().eq("id", id);
+  // 3.1. Obtener organization_id y validar que el empleador pertenezca a la organizaci?n
+  const organizationId = await getCurrentOrganizationId(request, supabase);
+  if (!organizationId) {
+    return createErrorResponse(
+      { message: "No se pudo determinar la organizaci?n del usuario" },
+      "Error de autenticaci?n",
+      401
+    );
+  }
+
+  // 4. Eliminar empleador (solo si pertenece a la organizaci?n)
+  const { error } = await supabase
+    .from("employers")
+    .delete()
+    .eq("id", id)
+    .eq("organization_id", organizationId);
 
   if (error) {
     apiLogger.error("Error deleting employer", {
@@ -293,7 +363,7 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
     return createErrorResponse(error, "Error al eliminar empleador");
   }
 
-  // 5. Log de éxito
+  // 5. Log de ?xito
   apiLogger.info("Employer deleted successfully", {
     employerId: id,
   });

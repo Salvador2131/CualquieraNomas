@@ -1,5 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
+import {
+  getCurrentOrganizationId,
+  addOrganizationFilter,
+} from "@/lib/utils/api-organization-filter";
 
 export async function GET(request: NextRequest) {
   try {
@@ -12,6 +16,15 @@ export async function GET(request: NextRequest) {
     const offset = (page - 1) * limit;
 
     const supabase = createClient();
+
+    // Obtener organization_id del usuario autenticado
+    const organizationId = await getCurrentOrganizationId(request, supabase);
+    if (!organizationId) {
+      return NextResponse.json(
+        { message: "No se pudo determinar la organización del usuario" },
+        { status: 401 }
+      );
+    }
 
     let query = supabase
       .from("conflicts")
@@ -32,6 +45,9 @@ export async function GET(request: NextRequest) {
       `)
       .order("detected_at", { ascending: false })
       .range(offset, offset + limit - 1);
+
+    // Aplicar filtro de organización
+    query = addOrganizationFilter(query, organizationId);
 
     if (workerId) {
       query = query.eq("worker_id", workerId);
@@ -103,6 +119,15 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient();
 
+    // Obtener organization_id del usuario autenticado
+    const organizationId = await getCurrentOrganizationId(request, supabase);
+    if (!organizationId) {
+      return NextResponse.json(
+        { message: "No se pudo determinar la organización del usuario" },
+        { status: 401 }
+      );
+    }
+
     const { data, error } = await supabase
       .from("conflicts")
       .insert({
@@ -116,6 +141,7 @@ export async function POST(request: NextRequest) {
         status: "detected",
         resolution_type,
         resolution_details: resolution_details || {},
+        organization_id: organizationId, // Agregar organization_id
       })
       .select()
       .single();
@@ -128,9 +154,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Crear log del conflicto
+    // Crear log del conflicto (con organization_id)
     await supabase.from("conflict_logs").insert({
       conflict_id: data.id,
+      organization_id: organizationId,
       action: "detected",
       details: {
         conflict_type,
@@ -166,6 +193,29 @@ export async function PATCH(request: NextRequest) {
 
     const supabase = createClient();
 
+    // Obtener organization_id y validar que el conflicto pertenezca a la organización
+    const organizationId = await getCurrentOrganizationId(request, supabase);
+    if (!organizationId) {
+      return NextResponse.json(
+        { message: "No se pudo determinar la organización del usuario" },
+        { status: 401 }
+      );
+    }
+
+    // Verificar que el conflicto pertenezca a la organización del usuario
+    const { data: existingConflict } = await supabase
+      .from("conflicts")
+      .select("organization_id")
+      .eq("id", id)
+      .single();
+
+    if (!existingConflict || existingConflict.organization_id !== organizationId) {
+      return NextResponse.json(
+        { message: "Conflicto no encontrado o no pertenece a tu organización" },
+        { status: 403 }
+      );
+    }
+
     const updateData: any = {
       status,
       updated_at: new Date().toISOString(),
@@ -187,6 +237,7 @@ export async function PATCH(request: NextRequest) {
       .from("conflicts")
       .update(updateData)
       .eq("id", id)
+      .eq("organization_id", organizationId) // Asegurar que pertenece a la organización
       .select()
       .single();
 
@@ -198,9 +249,10 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Crear log del cambio
+    // Crear log del cambio (con organization_id)
     await supabase.from("conflict_logs").insert({
       conflict_id: id,
+      organization_id: organizationId,
       action: status === "resolved" ? "resolved" : "modified",
       details: {
         new_status: status,

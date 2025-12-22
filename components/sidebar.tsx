@@ -28,6 +28,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { OrganizationSelector } from "@/components/organization-selector";
 
 const navigation = [
   {
@@ -161,6 +162,13 @@ function SidebarContent() {
           <Calendar className="h-6 w-6" />
           <span className="">ERP Banquetes</span>
         </Link>
+
+        {/* Selector de Organización */}
+        {userId && (
+          <div className="ml-auto mr-2">
+            <OrganizationSelector />
+          </div>
+        )}
 
         {/* Botón de Notificaciones */}
         {userId && (

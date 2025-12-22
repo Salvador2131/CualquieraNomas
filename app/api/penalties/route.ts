@@ -12,6 +12,10 @@ import {
 } from "@/lib/api/response-handler";
 import { mainSecurityMiddleware } from "@/lib/middleware";
 import { apiLogger } from "@/lib/logger";
+import {
+  getCurrentOrganizationId,
+  addOrganizationFilter,
+} from "@/lib/utils/api-organization-filter";
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
   // 1. Verificaciones de seguridad
@@ -43,7 +47,17 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
   // 3. Crear cliente de Supabase
   const supabase = createClient();
 
-  // 4. Construir consulta
+  // 3.1. Obtener organization_id del usuario autenticado
+  const organizationId = await getCurrentOrganizationId(request, supabase);
+  if (!organizationId) {
+    return createErrorResponse(
+      { message: "No se pudo determinar la organización del usuario" },
+      "Error de autenticación",
+      401
+    );
+  }
+
+  // 4. Construir consulta con filtro de organización
   let query = supabase
     .from("penalties")
     .select(
@@ -63,6 +77,9 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     )
     .order("created_at", { ascending: false })
     .range(offset, offset + limit - 1);
+
+  // Aplicar filtro de organización
+  query = addOrganizationFilter(query, organizationId);
 
   if (queryParams.workerId) {
     query = query.eq("worker_id", queryParams.workerId);
@@ -84,10 +101,12 @@ export const GET = withErrorHandling(async (request: NextRequest) => {
     return createErrorResponse(error, "Error al obtener penalizaciones");
   }
 
-  // 5. Obtener total de registros para paginación
-  const { count } = await supabase
+  // 5. Obtener total de registros para paginación (con filtro de organización)
+  let countQuery = supabase
     .from("penalties")
     .select("*", { count: "exact", head: true });
+  countQuery = addOrganizationFilter(countQuery, organizationId);
+  const { count } = await countQuery;
 
   // 6. Log de éxito
   apiLogger.info("Penalties fetched successfully", {
@@ -141,6 +160,15 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient();
 
+    // Obtener organization_id del usuario autenticado
+    const organizationId = await getCurrentOrganizationId(request, supabase);
+    if (!organizationId) {
+      return NextResponse.json(
+        { message: "No se pudo determinar la organización del usuario" },
+        { status: 401 }
+      );
+    }
+
     const { data, error } = await supabase
       .from("penalties")
       .insert({
@@ -153,6 +181,7 @@ export async function POST(request: NextRequest) {
         penalty_points: penalty_points || 0,
         penalty_duration_days: penalty_duration_days || 0,
         admin_notes,
+        organization_id: organizationId, // Agregar organization_id
         status: "active",
         details: {
           created_by: "admin",
@@ -170,9 +199,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Crear log de la penalización
+    // Crear log de la penalización (con organization_id)
     await supabase.from("penalty_logs").insert({
       penalty_id: data.id,
+      organization_id: organizationId,
       action: "applied",
       details: {
         penalty_points: data.penalty_points,
@@ -208,6 +238,29 @@ export async function PATCH(request: NextRequest) {
 
     const supabase = createClient();
 
+    // Obtener organization_id y validar que la penalización pertenezca a la organización
+    const organizationId = await getCurrentOrganizationId(request, supabase);
+    if (!organizationId) {
+      return NextResponse.json(
+        { message: "No se pudo determinar la organización del usuario" },
+        { status: 401 }
+      );
+    }
+
+    // Verificar que la penalización pertenezca a la organización del usuario
+    const { data: existingPenalty } = await supabase
+      .from("penalties")
+      .select("organization_id")
+      .eq("id", id)
+      .single();
+
+    if (!existingPenalty || existingPenalty.organization_id !== organizationId) {
+      return NextResponse.json(
+        { message: "Penalización no encontrada o no pertenece a tu organización" },
+        { status: 403 }
+      );
+    }
+
     const updateData: any = {
       status,
       updated_at: new Date().toISOString(),
@@ -229,6 +282,7 @@ export async function PATCH(request: NextRequest) {
       .from("penalties")
       .update(updateData)
       .eq("id", id)
+      .eq("organization_id", organizationId) // Asegurar que pertenece a la organización
       .select()
       .single();
 
@@ -240,9 +294,10 @@ export async function PATCH(request: NextRequest) {
       );
     }
 
-    // Crear log del cambio
+    // Crear log del cambio (con organization_id)
     await supabase.from("penalty_logs").insert({
       penalty_id: id,
+      organization_id: organizationId,
       action: status === "resolved" ? "resolved" : "modified",
       details: {
         new_status: status,

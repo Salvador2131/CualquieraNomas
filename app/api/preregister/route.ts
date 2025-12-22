@@ -16,6 +16,9 @@ import {
 } from "@/lib/api/response-handler";
 import { mainSecurityMiddleware } from "@/lib/middleware";
 import { apiLogger } from "@/lib/logger";
+import {
+  getCurrentOrganizationId,
+} from "@/lib/utils/api-organization-filter";
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
   // 1. Verificaciones de seguridad
@@ -57,7 +60,15 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   // 4. Crear cliente de Supabase
   const supabase = createClient();
 
-  // 5. Insertar preregistro en la base de datos
+  // 4.1. Obtener organization_id del usuario autenticado (si está autenticado)
+  // Si no está autenticado (preregistro público), usar organización por defecto
+  let organizationId = await getCurrentOrganizationId(request, supabase);
+  if (!organizationId) {
+    // Usar organización por defecto para preregistros públicos
+    organizationId = '00000000-0000-0000-0000-000000000001';
+  }
+
+  // 5. Insertar preregistro en la base de datos (con organization_id)
   const { data, error } = await supabase
     .from("preregistrations")
     .insert([
@@ -72,6 +83,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
         location: validatedData.location,
         special_requirements: validatedData.special_requirements,
         status: validatedData.status,
+        organization_id: organizationId, // Agregar organization_id
       },
     ])
     .select()

@@ -35,10 +35,10 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // Obtener información del usuario desde la tabla users
+    // Obtener información del usuario desde la tabla users (incluyendo organization_id)
     const { data: userData, error: userError } = await supabase
       .from("users")
-      .select("id, email, role, name")
+      .select("id, email, role, name, organization_id")
       .eq("id", authData.user.id)
       .single();
 
@@ -49,6 +49,18 @@ export async function POST(request: NextRequest) {
       );
     }
 
+    // Obtener información de la organización
+    let organizationData = null;
+    if (userData.organization_id) {
+      const { data: orgData } = await supabase
+        .from("organizations")
+        .select("id, name, slug, plan, status")
+        .eq("id", userData.organization_id)
+        .single();
+      
+      organizationData = orgData;
+    }
+
     // Crear sesión (en un entorno real, usarías cookies seguras)
     const response = NextResponse.json({
       message: "Login exitoso",
@@ -57,15 +69,18 @@ export async function POST(request: NextRequest) {
         email: userData.email,
         name: userData.name,
         role: userData.role,
+        organization_id: userData.organization_id,
+        organization: organizationData,
       },
     });
 
-    // Establecer cookie de sesión (opcional, para mantener la sesión)
+    // Establecer cookie de sesión (incluyendo organization_id)
     response.cookies.set(
       "user-session",
       JSON.stringify({
         userId: userData.id,
         role: userData.role,
+        organizationId: userData.organization_id,
       }),
       {
         httpOnly: true,

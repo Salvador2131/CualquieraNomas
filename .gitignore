@@ -20,6 +20,7 @@ yarn-error.log*
 .env.local
 .env.production
 .env.development
+.env.test
 
 # Pero PERMITIR archivos de ejemplo
 !.env.example
@@ -29,6 +30,9 @@ yarn-error.log*
 # vercel
 .vercel
 
+# supabase
+.supabase/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
@@ -37,10 +41,15 @@ next-env.d.ts
 logs/
 *.log
 
-# tests
-tests/
+# tests - screenshots y reportes generados
+tests/screenshots/
+tests/reports/
+*.png
+*.jpg
+*.jpeg
 
 # docs (opcional - puedes decidir si subirlos o no)
 # Todos los .md excepto README.md
 # *.md
 # !README.md
+.env*.local

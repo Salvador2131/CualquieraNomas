@@ -11,6 +11,7 @@ export interface NotificationData {
   evento_id?: string;
   preregistro_id?: string;
   datos_adicionales?: any;
+  organization_id?: string; // Agregar organization_id
 }
 
 export interface EmailTemplate {
@@ -30,6 +31,19 @@ class NotificationService {
    */
   async createNotification(data: NotificationData) {
     try {
+      // Obtener organization_id si no se proporciona
+      let organizationId = data.organization_id;
+      if (!organizationId && data.destinatario_id) {
+        const { data: user } = await this.supabase
+          .from("users")
+          .select("organization_id")
+          .eq("id", data.destinatario_id)
+          .single();
+        organizationId = user?.organization_id || '00000000-0000-0000-0000-000000000001';
+      } else if (!organizationId) {
+        organizationId = '00000000-0000-0000-0000-000000000001';
+      }
+
       const { data: notification, error } = await this.supabase
         .from("notifications")
         .insert([
@@ -43,6 +57,7 @@ class NotificationService {
             evento_id: data.evento_id,
             preregistro_id: data.preregistro_id,
             datos_adicionales: data.datos_adicionales,
+            organization_id: organizationId, // Agregar organization_id
           },
         ])
         .select()
@@ -192,7 +207,10 @@ class NotificationService {
         return false;
       }
 
-      // Crear notificaciones para cada trabajador
+      // Obtener organization_id del evento
+      const organizationId = evento.organization_id || '00000000-0000-0000-0000-000000000001';
+
+      // Crear notificaciones para cada trabajador (con organization_id)
       const notifications = workerIds.map((workerId) => ({
         destinatario_id: workerId,
         destinatario_tipo: "worker" as const,
@@ -202,6 +220,7 @@ class NotificationService {
         ).toLocaleDateString()}`,
         tipo: "nuevo_evento",
         evento_id: eventoId,
+        organization_id: organizationId, // Agregar organization_id
         datos_adicionales: {
           evento_titulo: evento.titulo,
           evento_fecha: new Date(evento.fecha_evento).toLocaleDateString(),
@@ -255,7 +274,10 @@ class NotificationService {
         return false;
       }
 
-      // Crear notificación para el cliente
+      // Obtener organization_id del preregistro o evento
+      const organizationId = preregistro.organization_id || evento.organization_id || '00000000-0000-0000-0000-000000000001';
+
+      // Crear notificación para el cliente (con organization_id)
       const notification = await this.createNotification({
         destinatario_tipo: "client",
         destinatario_email: preregistro.email,
@@ -264,6 +286,7 @@ class NotificationService {
         tipo: "evento_aprobado",
         evento_id: eventoId,
         preregistro_id: preregistroId,
+        organization_id: organizationId, // Agregar organization_id
         datos_adicionales: {
           cliente_nombre: preregistro.nombre_completo,
           evento_titulo: evento.titulo,
@@ -297,18 +320,22 @@ class NotificationService {
         return false;
       }
 
-      // Obtener administradores
+      // Obtener organization_id del preregistro
+      const organizationId = preregistro.organization_id || '00000000-0000-0000-0000-000000000001';
+
+      // Obtener administradores de la misma organización
       const { data: admins, error: adminsError } = await this.supabase
         .from("users")
         .select("id, name, email")
-        .eq("role", "admin");
+        .eq("role", "admin")
+        .eq("organization_id", organizationId);
 
       if (adminsError || !admins) {
         console.error("Error fetching admins:", adminsError);
         return false;
       }
 
-      // Crear notificaciones para cada administrador
+      // Crear notificaciones para cada administrador (con organization_id)
       const notifications = admins.map((admin) => ({
         destinatario_id: admin.id,
         destinatario_tipo: "admin" as const,
@@ -318,6 +345,7 @@ class NotificationService {
         } para el ${new Date(preregistro.fecha_estimada).toLocaleDateString()}`,
         tipo: "nuevo_preregistro",
         preregistro_id: preregistroId,
+        organization_id: organizationId, // Agregar organization_id
         datos_adicionales: {
           cliente_nombre: preregistro.nombre_completo,
           cliente_email: preregistro.email,
@@ -350,14 +378,32 @@ class NotificationService {
   }
 
   /**
-   * Obtener estadísticas de notificaciones
+   * Obtener estadísticas de notificaciones (filtradas por organización)
    */
-  async getNotificationStats(userId: string) {
+  async getNotificationStats(userId: string, organizationId?: string) {
     try {
-      const { data: stats, error } = await this.supabase
+      // Obtener organization_id del usuario si no se proporciona
+      let orgId = organizationId;
+      if (!orgId) {
+        const { data: user } = await this.supabase
+          .from("users")
+          .select("organization_id")
+          .eq("id", userId)
+          .single();
+        orgId = user?.organization_id;
+      }
+
+      let query = this.supabase
         .from("notifications")
         .select("leida, tipo")
         .or(`destinatario_id.eq.${userId},destinatario_email.eq.${userId}`);
+
+      // Aplicar filtro de organización si está disponible
+      if (orgId) {
+        query = query.eq("organization_id", orgId);
+      }
+
+      const { data: stats, error } = await query;
 
       if (error) {
         console.error("Error fetching notification stats:", error);

@@ -4,6 +4,7 @@ import { Inter } from "next/font/google"
 import "./globals.css"
 import { ThemeProvider } from "@/components/theme-provider"
 import { Sidebar } from "@/components/sidebar"
+import { OrganizationProvider } from "@/lib/context/organization-context"
 import { redirect } from "next/navigation"
 
 const inter = Inter({ subsets: ["latin"] })
@@ -23,10 +24,12 @@ export default function RootLayout({
     <html lang="es">
       <body className={inter.className}>
         <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
-          <div className="flex h-screen bg-background">
-            <Sidebar />
-            <main className="flex-1 overflow-y-auto">{children}</main>
-          </div>
+          <OrganizationProvider>
+            <div className="flex h-screen bg-background">
+              <Sidebar />
+              <main className="flex-1 overflow-y-auto">{children}</main>
+            </div>
+          </OrganizationProvider>
         </ThemeProvider>
       </body>
     </html>
