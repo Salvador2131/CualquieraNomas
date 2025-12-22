@@ -31,13 +31,12 @@ jobs:
           cache: "npm"
 
       - name: Install Supabase CLI
-        run: |
-          echo "Instalando Supabase CLI desde GitHub releases..."
-          # Descargar el binario directamente (no tar.gz)
-          curl -L https://github.com/supabase/cli/releases/download/v2.67.3/supabase_2.67.3_linux_amd64 -o supabase
-          chmod +x supabase
-          sudo mv supabase /usr/local/bin/
-          supabase --version
+        uses: supabase/setup-cli@v1
+        with:
+          version: latest
+
+      - name: Verify Supabase CLI
+        run: supabase --version
 
       - name: Install dependencies (skip supabase package)
         run: |
