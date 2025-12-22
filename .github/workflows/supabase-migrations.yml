@@ -33,11 +33,8 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Install Supabase CLI
-        run: npm install -g supabase@latest
-
       - name: Verify Supabase CLI
-        run: supabase --version
+        run: npx supabase --version
 
       - name: Link Supabase project
         env:
