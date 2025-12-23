@@ -69,7 +69,7 @@ El error `ENOTFOUND hjtarzunzoedgpsniqc.supabase.co` significa:
 
 ### Paso 2: Busca tu proyecto
 - Busca por el **nombre**: `CualquieraNomas`
-- O busca por el **Reference ID**: `hjtarzunzoedgpsniqc`
+- O busca por el **Reference ID**: `hjtarzunzoedgpbsniqc`
 
 ### Paso 3: Verifica el estado
 - Si dice **"Paused"** o **"Inactive"** → Click en **"Resume"**
@@ -88,8 +88,8 @@ El error `ENOTFOUND hjtarzunzoedgpsniqc.supabase.co` significa:
 │  PROYECTO SUPABASE                              │
 ├─────────────────────────────────────────────────┤
 │  Nombre: CualquieraNomas  ← Lo que tú ves      │
-│  ID: hjtarzunzoedgpsniqc   ← Lo que usa la URL │
-│  URL: https://hjtarzunzoedgpsniqc.supabase.co   │
+│  ID: hjtarzunzoedgpbsniqc   ← Lo que usa la URL │
+│  URL: https://hjtarzunzoedgpbsniqc.supabase.co   │
 │  Estado: ⚠️ PAUSADO        ← El problema       │
 └─────────────────────────────────────────────────┘
 ```
