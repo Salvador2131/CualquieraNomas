@@ -266,6 +266,18 @@ CREATE TRIGGER update_incident_reports_updated_at
 -- 9. AGREGAR ROL SUPERADMIN A USERS
 -- =====================================================
 
+-- Agregar columna role si no existe
+DO $$
+BEGIN
+    IF NOT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'users' AND column_name = 'role'
+    ) THEN
+        ALTER TABLE users 
+        ADD COLUMN role VARCHAR(20) DEFAULT 'worker';
+    END IF;
+END $$;
+
 -- Actualizar el CHECK constraint de role para incluir 'superadmin'
 ALTER TABLE users
 DROP CONSTRAINT IF EXISTS users_role_check;
