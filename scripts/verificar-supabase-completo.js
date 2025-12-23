@@ -108,10 +108,16 @@ function verifySupabaseConnection(supabaseUrl, supabaseKey) {
           if (res.statusCode === 200 || res.statusCode === 401) {
             log("✅ Supabase responde correctamente", "green");
             log(`   Status: ${res.statusCode}`, "green");
-            log(`   Content-Type: ${res.headers["content-type"] || "N/A"}`, "green");
+            log(
+              `   Content-Type: ${res.headers["content-type"] || "N/A"}`,
+              "green"
+            );
             resolve({ success: true, statusCode: res.statusCode });
           } else {
-            log(`⚠️  Supabase responde con código: ${res.statusCode}`, "yellow");
+            log(
+              `⚠️  Supabase responde con código: ${res.statusCode}`,
+              "yellow"
+            );
             resolve({ success: false, statusCode: res.statusCode });
           }
         });
@@ -120,7 +126,10 @@ function verifySupabaseConnection(supabaseUrl, supabaseKey) {
       req.on("error", (error) => {
         log(`❌ Error al conectar con Supabase: ${error.message}`, "red");
         if (error.code === "ENOTFOUND") {
-          log("   ⚠️  El hostname no se puede resolver. Posibles causas:", "yellow");
+          log(
+            "   ⚠️  El hostname no se puede resolver. Posibles causas:",
+            "yellow"
+          );
           log("      - El proyecto de Supabase está pausado", "yellow");
           log("      - La URL es incorrecta", "yellow");
           log("      - Problema de DNS/red", "yellow");
@@ -200,8 +209,15 @@ function verifySupabaseTables(supabaseUrl, supabaseKey) {
         } else if (res.statusCode === 404 || res.statusCode === 406) {
           log("⚠️  La tabla 'users' no existe o no es accesible", "yellow");
           log("   Código: " + res.statusCode, "yellow");
-          log("   Necesitas ejecutar las migraciones en Supabase SQL Editor", "yellow");
-          resolve({ success: false, tablesExist: false, statusCode: res.statusCode });
+          log(
+            "   Necesitas ejecutar las migraciones en Supabase SQL Editor",
+            "yellow"
+          );
+          resolve({
+            success: false,
+            tablesExist: false,
+            statusCode: res.statusCode,
+          });
         } else {
           log(`⚠️  Respuesta inesperada: ${res.statusCode}`, "yellow");
           log(`   Mensaje: ${data.substring(0, 200)}`, "yellow");
@@ -254,14 +270,21 @@ async function main() {
 
   if (!allRequired) {
     log("\n❌ Faltan variables de entorno requeridas", "red");
-    log("   Crea un archivo .env.local con las credenciales necesarias", "yellow");
+    log(
+      "   Crea un archivo .env.local con las credenciales necesarias",
+      "yellow"
+    );
     process.exit(1);
   }
 
   // 2. Verificar conexión HTTP
   const connectionResult = await verifySupabaseConnection(
-    results.NEXT_PUBLIC_SUPABASE_URL ? process.env.NEXT_PUBLIC_SUPABASE_URL : null,
-    results.NEXT_PUBLIC_SUPABASE_ANON_KEY ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY : null
+    results.NEXT_PUBLIC_SUPABASE_URL
+      ? process.env.NEXT_PUBLIC_SUPABASE_URL
+      : null,
+    results.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      ? process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+      : null
   );
 
   // 3. Verificar tablas (solo si la conexión fue exitosa)
@@ -296,8 +319,14 @@ async function main() {
     log(`   Error: ${connectionResult.error}`, "red");
     if (connectionResult.code === "ENOTFOUND") {
       log("\n🔧 SOLUCIONES POSIBLES:", "magenta");
-      log("   1. Verifica que el proyecto de Supabase esté activo (no pausado)", "yellow");
-      log("   2. Ve a https://supabase.com/dashboard y verifica el estado", "yellow");
+      log(
+        "   1. Verifica que el proyecto de Supabase esté activo (no pausado)",
+        "yellow"
+      );
+      log(
+        "   2. Ve a https://supabase.com/dashboard y verifica el estado",
+        "yellow"
+      );
       log("   3. Si está pausado, reactívalo desde el dashboard", "yellow");
       log("   4. Verifica que la URL sea correcta", "yellow");
     }
@@ -305,7 +334,9 @@ async function main() {
 
   if (connectionResult.success) {
     log(
-      `Tablas: ${tablesResult.tablesExist ? "✅ EXISTEN" : "⚠️  NO ENCONTRADAS"}`,
+      `Tablas: ${
+        tablesResult.tablesExist ? "✅ EXISTEN" : "⚠️  NO ENCONTRADAS"
+      }`,
       tablesResult.tablesExist ? "green" : "yellow"
     );
 
@@ -313,9 +344,18 @@ async function main() {
       log("\n📋 PRÓXIMOS PASOS:", "magenta");
       log("   1. Ve a Supabase Dashboard > SQL Editor", "yellow");
       log("   2. Ejecuta las migraciones en orden:", "yellow");
-      log("      - supabase/migrations/20251222215551_phase1_multi_tenant_organizations.sql", "blue");
-      log("      - supabase/migrations/20251223000000_add_subscription_system.sql", "blue");
-      log("      - supabase/migrations/20251223010000_add_rating_triggers.sql", "blue");
+      log(
+        "      - supabase/migrations/20251222215551_phase1_multi_tenant_organizations.sql",
+        "blue"
+      );
+      log(
+        "      - supabase/migrations/20251223000000_add_subscription_system.sql",
+        "blue"
+      );
+      log(
+        "      - supabase/migrations/20251223010000_add_rating_triggers.sql",
+        "blue"
+      );
     }
   }
 

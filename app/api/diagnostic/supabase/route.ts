@@ -1,5 +1,10 @@
 import { NextResponse } from "next/server";
-import { isEnvValid, getEnvErrors, getEnvWarnings, env } from "@/lib/config/env";
+import {
+  isEnvValid,
+  getEnvErrors,
+  getEnvWarnings,
+  env,
+} from "@/lib/config/env";
 import { createClient, createServerClient } from "@/lib/supabase";
 
 /**
@@ -72,7 +77,8 @@ export async function GET() {
 
   diagnostic.environment.variables.url = !!env.supabase.url;
   diagnostic.environment.variables.anonKey = !!env.supabase.anonKey;
-  diagnostic.environment.variables.serviceRoleKey = !!env.supabase.serviceRoleKey;
+  diagnostic.environment.variables.serviceRoleKey =
+    !!env.supabase.serviceRoleKey;
 
   if (!diagnostic.environment.isValid) {
     diagnostic.recommendations.push(
@@ -149,15 +155,15 @@ export async function GET() {
         diagnostic.recommendations.push(
           "  3. Si está pausado, reactívalo desde el dashboard"
         );
-        diagnostic.recommendations.push("  4. Verifica que la URL sea correcta");
+        diagnostic.recommendations.push(
+          "  4. Verifica que la URL sea correcta"
+        );
       } else if (error.message.includes("timeout")) {
         diagnostic.recommendations.push(
           "Timeout al conectar con Supabase. Verifica tu conexión a internet."
         );
       } else {
-        diagnostic.recommendations.push(
-          `Error de conexión: ${error.message}`
-        );
+        diagnostic.recommendations.push(`Error de conexión: ${error.message}`);
       }
     }
   }
@@ -178,7 +184,10 @@ export async function GET() {
         diagnostic.connection.databaseTest.error = error.message;
         diagnostic.connection.databaseTest.errorCode = error.code;
 
-        if (error.code === "42P01" || error.message.includes("does not exist")) {
+        if (
+          error.code === "42P01" ||
+          error.message.includes("does not exist")
+        ) {
           diagnostic.connection.databaseTest.tablesExist = false;
           diagnostic.recommendations.push(
             "Las tablas no existen. Ejecuta las migraciones en Supabase SQL Editor:"
