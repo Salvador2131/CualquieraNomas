@@ -266,25 +266,36 @@ CREATE TRIGGER update_incident_reports_updated_at
 -- 9. AGREGAR ROL SUPERADMIN A USERS
 -- =====================================================
 
--- Agregar columna role si no existe
+-- Agregar columna role si no existe y luego agregar constraint
 DO $$
 BEGIN
-    IF NOT EXISTS (
-        SELECT FROM information_schema.columns 
-        WHERE table_name = 'users' AND column_name = 'role'
-    ) THEN
-        ALTER TABLE users 
-        ADD COLUMN role VARCHAR(20) DEFAULT 'worker';
+    -- Verificar que la tabla users existe
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users') THEN
+        -- Agregar columna role si no existe
+        IF NOT EXISTS (
+            SELECT FROM information_schema.columns 
+            WHERE table_name = 'users' AND column_name = 'role'
+        ) THEN
+            ALTER TABLE users 
+            ADD COLUMN role VARCHAR(20) DEFAULT 'worker';
+        END IF;
+        
+        -- Ahora que la columna existe (o ya existía), agregar/actualizar el constraint
+        -- Primero eliminar el constraint si existe
+        IF EXISTS (
+            SELECT FROM information_schema.table_constraints 
+            WHERE table_name = 'users' 
+            AND constraint_name = 'users_role_check'
+        ) THEN
+            ALTER TABLE users DROP CONSTRAINT users_role_check;
+        END IF;
+        
+        -- Agregar el constraint
+        ALTER TABLE users
+        ADD CONSTRAINT users_role_check 
+        CHECK (role IN ('admin', 'worker', 'employer', 'superadmin'));
     END IF;
 END $$;
-
--- Actualizar el CHECK constraint de role para incluir 'superadmin'
-ALTER TABLE users
-DROP CONSTRAINT IF EXISTS users_role_check;
-
-ALTER TABLE users
-ADD CONSTRAINT users_role_check 
-  CHECK (role IN ('admin', 'worker', 'employer', 'superadmin'));
 
 -- =====================================================
 -- 10. FUNCIÓN PARA CALCULAR RATING PROMEDIO DE TRABAJADOR
