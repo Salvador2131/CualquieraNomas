@@ -25,9 +25,10 @@ CREATE TABLE IF NOT EXISTS users (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_users_email ON users(email);
-CREATE INDEX IF NOT EXISTS idx_users_role ON users(role);
-CREATE INDEX IF NOT EXISTS idx_users_status ON users(status);
+-- Índices para users (condicionales)
+SELECT create_index_if_column_exists('users', 'email', 'idx_users_email');
+SELECT create_index_if_column_exists('users', 'role', 'idx_users_role');
+SELECT create_index_if_column_exists('users', 'status', 'idx_users_status');
 
 -- =====================================================
 -- 2. TABLA WORKERS (Trabajadores)
@@ -50,10 +51,11 @@ CREATE TABLE IF NOT EXISTS workers (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_workers_user_id ON workers(user_id);
-CREATE INDEX IF NOT EXISTS idx_workers_specialization ON workers(specialization);
-CREATE INDEX IF NOT EXISTS idx_workers_availability ON workers(availability_status);
-CREATE INDEX IF NOT EXISTS idx_workers_rating ON workers(rating);
+-- Índices para workers (condicionales)
+SELECT create_index_if_column_exists('workers', 'user_id', 'idx_workers_user_id');
+SELECT create_index_if_column_exists('workers', 'specialization', 'idx_workers_specialization');
+SELECT create_index_if_column_exists('workers', 'availability_status', 'idx_workers_availability');
+SELECT create_index_if_column_exists('workers', 'rating', 'idx_workers_rating');
 
 -- =====================================================
 -- 3. TABLA EMPLOYERS (Empleadores/Empresas)
@@ -99,41 +101,14 @@ CREATE TABLE IF NOT EXISTS events (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
--- Crear índices solo si las columnas existen
-DO $$
-BEGIN
-    -- Índice para fecha_evento (si existe la columna)
-    IF EXISTS (
-        SELECT FROM information_schema.columns 
-        WHERE table_name = 'events' AND column_name = 'fecha_evento'
-    ) THEN
-        CREATE INDEX IF NOT EXISTS idx_events_fecha_evento ON events(fecha_evento);
-    END IF;
-    
-    -- Índice para estado (si existe la columna)
-    IF EXISTS (
-        SELECT FROM information_schema.columns 
-        WHERE table_name = 'events' AND column_name = 'estado'
-    ) THEN
-        CREATE INDEX IF NOT EXISTS idx_events_estado ON events(estado);
-    END IF;
-    
-    -- Índice para employer_id (si existe la columna)
-    IF EXISTS (
-        SELECT FROM information_schema.columns 
-        WHERE table_name = 'events' AND column_name = 'employer_id'
-    ) THEN
-        CREATE INDEX IF NOT EXISTS idx_events_employer_id ON events(employer_id);
-    END IF;
-    
-    -- Índice para tipo_evento (si existe la columna)
-    IF EXISTS (
-        SELECT FROM information_schema.columns 
-        WHERE table_name = 'events' AND column_name = 'tipo_evento'
-    ) THEN
-        CREATE INDEX IF NOT EXISTS idx_events_tipo_evento ON events(tipo_evento);
-    END IF;
-END $$;
+-- Índices para events (condicionales)
+SELECT create_index_if_column_exists('events', 'fecha_evento', 'idx_events_fecha_evento');
+SELECT create_index_if_column_exists('events', 'event_date', 'idx_events_event_date');
+SELECT create_index_if_column_exists('events', 'estado', 'idx_events_estado');
+SELECT create_index_if_column_exists('events', 'status', 'idx_events_status');
+SELECT create_index_if_column_exists('events', 'employer_id', 'idx_events_employer_id');
+SELECT create_index_if_column_exists('events', 'tipo_evento', 'idx_events_tipo_evento');
+SELECT create_index_if_column_exists('events', 'event_type', 'idx_events_event_type');
 
 -- =====================================================
 -- 5. TABLA PREREGISTRATIONS (Preregistros/Leads)
@@ -155,9 +130,49 @@ CREATE TABLE IF NOT EXISTS preregistrations (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_preregistrations_estado ON preregistrations(estado);
-CREATE INDEX IF NOT EXISTS idx_preregistrations_fecha_estimada ON preregistrations(fecha_estimada);
-CREATE INDEX IF NOT EXISTS idx_preregistrations_email ON preregistrations(email);
+-- Crear índices de preregistrations solo si las columnas existen
+DO $$
+BEGIN
+    -- Índice para estado (si existe la columna)
+    IF EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'preregistrations' AND column_name = 'estado'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_preregistrations_estado ON preregistrations(estado);
+    END IF;
+    
+    -- Índice para status (si existe la columna en lugar de estado)
+    IF EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'preregistrations' AND column_name = 'status'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_preregistrations_status ON preregistrations(status);
+    END IF;
+    
+    -- Índice para fecha_estimada (si existe la columna)
+    IF EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'preregistrations' AND column_name = 'fecha_estimada'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_preregistrations_fecha_estimada ON preregistrations(fecha_estimada);
+    END IF;
+    
+    -- Índice para event_date (si existe la columna en lugar de fecha_estimada)
+    IF EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'preregistrations' AND column_name = 'event_date'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_preregistrations_event_date ON preregistrations(event_date);
+    END IF;
+    
+    -- Índice para email (si existe la columna)
+    IF EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'preregistrations' AND column_name = 'email'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_preregistrations_email ON preregistrations(email);
+    END IF;
+END $$;
 
 -- =====================================================
 -- 6. TABLA QUOTES (Cotizaciones)
@@ -181,9 +196,10 @@ CREATE TABLE IF NOT EXISTS quotes (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_quotes_status ON quotes(status);
-CREATE INDEX IF NOT EXISTS idx_quotes_event_date ON quotes(event_date);
-CREATE INDEX IF NOT EXISTS idx_quotes_expiration_date ON quotes(expiration_date);
+-- Índices para quotes (condicionales)
+SELECT create_index_if_column_exists('quotes', 'status', 'idx_quotes_status');
+SELECT create_index_if_column_exists('quotes', 'event_date', 'idx_quotes_event_date');
+SELECT create_index_if_column_exists('quotes', 'expiration_date', 'idx_quotes_expiration_date');
 
 -- =====================================================
 -- 7. TABLA WORKER_SALARIES (Salarios de trabajadores)
@@ -224,9 +240,10 @@ CREATE TABLE IF NOT EXISTS penalties (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_penalties_worker_id ON penalties(worker_id);
-CREATE INDEX IF NOT EXISTS idx_penalties_status ON penalties(status);
-CREATE INDEX IF NOT EXISTS idx_penalties_event_id ON penalties(event_id);
+-- Índices para penalties (condicionales)
+SELECT create_index_if_column_exists('penalties', 'worker_id', 'idx_penalties_worker_id');
+SELECT create_index_if_column_exists('penalties', 'status', 'idx_penalties_status');
+SELECT create_index_if_column_exists('penalties', 'event_id', 'idx_penalties_event_id');
 
 -- =====================================================
 -- 9. TABLA PENALTY_LOGS (Logs de penalizaciones)
@@ -261,9 +278,10 @@ CREATE TABLE IF NOT EXISTS penalty_appeals (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_penalty_appeals_penalty_id ON penalty_appeals(penalty_id);
-CREATE INDEX IF NOT EXISTS idx_penalty_appeals_worker_id ON penalty_appeals(worker_id);
-CREATE INDEX IF NOT EXISTS idx_penalty_appeals_status ON penalty_appeals(status);
+-- Índices para penalty_appeals (condicionales)
+SELECT create_index_if_column_exists('penalty_appeals', 'penalty_id', 'idx_penalty_appeals_penalty_id');
+SELECT create_index_if_column_exists('penalty_appeals', 'worker_id', 'idx_penalty_appeals_worker_id');
+SELECT create_index_if_column_exists('penalty_appeals', 'status', 'idx_penalty_appeals_status');
 
 -- =====================================================
 -- 11. TABLA CONFLICTS (Conflictos de horarios)
@@ -285,9 +303,10 @@ CREATE TABLE IF NOT EXISTS conflicts (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_conflicts_worker_id ON conflicts(worker_id);
-CREATE INDEX IF NOT EXISTS idx_conflicts_event_id ON conflicts(event_id);
-CREATE INDEX IF NOT EXISTS idx_conflicts_status ON conflicts(status);
+-- Índices para conflicts (condicionales)
+SELECT create_index_if_column_exists('conflicts', 'worker_id', 'idx_conflicts_worker_id');
+SELECT create_index_if_column_exists('conflicts', 'event_id', 'idx_conflicts_event_id');
+SELECT create_index_if_column_exists('conflicts', 'status', 'idx_conflicts_status');
 
 -- =====================================================
 -- 12. TABLA CONFLICT_LOGS (Logs de conflictos)
@@ -321,8 +340,9 @@ CREATE TABLE IF NOT EXISTS backups (
     completed_at TIMESTAMP WITH TIME ZONE
 );
 
-CREATE INDEX IF NOT EXISTS idx_backups_status ON backups(status);
-CREATE INDEX IF NOT EXISTS idx_backups_created_at ON backups(created_at);
+-- Índices para backups (condicionales)
+SELECT create_index_if_column_exists('backups', 'status', 'idx_backups_status');
+SELECT create_index_if_column_exists('backups', 'created_at', 'idx_backups_created_at');
 
 -- =====================================================
 -- 14. TABLA BACKUP_LOGS (Logs de backups)
@@ -336,8 +356,9 @@ CREATE TABLE IF NOT EXISTS backup_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_backup_logs_backup_id ON backup_logs(backup_id);
-CREATE INDEX IF NOT EXISTS idx_backup_logs_created_at ON backup_logs(created_at);
+-- Índices para backup_logs (condicionales)
+SELECT create_index_if_column_exists('backup_logs', 'backup_id', 'idx_backup_logs_backup_id');
+SELECT create_index_if_column_exists('backup_logs', 'created_at', 'idx_backup_logs_created_at');
 
 -- =====================================================
 -- 15. TABLA NOTIFICATIONS (Notificaciones)
@@ -369,7 +390,8 @@ CREATE TABLE IF NOT EXISTS notification_logs (
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_notification_logs_notification_id ON notification_logs(notification_id);
+-- Índices para notification_logs (condicionales)
+SELECT create_index_if_column_exists('notification_logs', 'notification_id', 'idx_notification_logs_notification_id');
 
 -- =====================================================
 -- 17. TABLA EMAIL_TEMPLATES (Plantillas de email)
@@ -387,8 +409,9 @@ CREATE TABLE IF NOT EXISTS email_templates (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_email_templates_name ON email_templates(name);
-CREATE INDEX IF NOT EXISTS idx_email_templates_is_active ON email_templates(is_active);
+-- Índices para email_templates (condicionales)
+SELECT create_index_if_column_exists('email_templates', 'name', 'idx_email_templates_name');
+SELECT create_index_if_column_exists('email_templates', 'is_active', 'idx_email_templates_is_active');
 
 -- =====================================================
 -- 18. CREAR FUNCIÓN update_updated_at_column
