@@ -131,16 +131,46 @@ CREATE TABLE IF NOT EXISTS event_workers (
     assigned_by_user_id UUID REFERENCES users(id) ON DELETE SET NULL,
     accepted_at TIMESTAMP WITH TIME ZONE,
     payment_agreed DECIMAL(10, 2), -- Pago acordado para este evento
-    organization_id UUID NOT NULL REFERENCES organizations(id) ON DELETE CASCADE,
+    organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW(),
     UNIQUE(event_id, worker_id) -- Un trabajador no puede estar asignado dos veces al mismo evento
 );
 
+-- Agregar organization_id si la tabla ya existe pero no tiene la columna
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'event_workers') THEN
+        -- Agregar columna si no existe
+        IF NOT EXISTS (
+            SELECT FROM information_schema.columns 
+            WHERE table_name = 'event_workers' AND column_name = 'organization_id'
+        ) THEN
+            ALTER TABLE event_workers 
+            ADD COLUMN organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+            
+            -- Asignar organización por defecto a registros existentes
+            UPDATE event_workers 
+            SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
+            WHERE organization_id IS NULL;
+        END IF;
+    END IF;
+END $$;
+
 CREATE INDEX IF NOT EXISTS idx_event_workers_event_id ON event_workers(event_id);
 CREATE INDEX IF NOT EXISTS idx_event_workers_worker_id ON event_workers(worker_id);
 CREATE INDEX IF NOT EXISTS idx_event_workers_status ON event_workers(status);
-CREATE INDEX IF NOT EXISTS idx_event_workers_organization_id ON event_workers(organization_id);
+
+-- Crear índice de organization_id solo si la columna existe
+DO $$
+BEGIN
+    IF EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'event_workers' AND column_name = 'organization_id'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_event_workers_organization_id ON event_workers(organization_id);
+    END IF;
+END $$;
 
 -- Trigger para updated_at
 CREATE TRIGGER update_event_workers_updated_at
