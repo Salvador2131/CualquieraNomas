@@ -104,7 +104,7 @@ Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser
 2. Selecciona tu proyecto
 3. Ve a: **Settings** > **General**
 4. Busca: **Reference ID**
-5. Copia el ID (ejemplo: `hjtarzunzoedgpsniqc`)
+5. Copia el ID (ejemplo: `hjtarzunzoedgpbsniqc`)
 
 ### 4.2. Obtener Access Token
 
@@ -157,7 +157,7 @@ supabase link --project-ref hjtarzunzoedgpsniqc
 #### Secret 2: `SUPABASE_PROJECT_REF`
 
 - **Name:** `SUPABASE_PROJECT_REF`
-- **Value:** El Reference ID que copiaste en el Paso 3.1 (ej: `hjtarzunzoedgpsniqc`)
+- **Value:** El Reference ID que copiaste en el Paso 3.1 (ej: `hjtarzunzoedgpbsniqc`)
 - Click: **Add secret**
 
 #### Secret 3: `SUPABASE_DB_PASSWORD` (Opcional pero recomendado)

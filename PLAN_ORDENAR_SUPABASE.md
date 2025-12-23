@@ -20,6 +20,7 @@ node scripts/diagnostico-supabase-completo.js
 ```
 
 Este script verificará:
+
 - ✅ Variables de entorno
 - ✅ Conexión HTTP con Supabase
 - ✅ Qué tablas existen
@@ -28,10 +29,12 @@ Este script verificará:
 ## 🔧 Paso 2: Verificar Proyecto Supabase
 
 1. **Ve a Supabase Dashboard:**
+
    - https://supabase.com/dashboard
    - Inicia sesión
 
 2. **Verifica el estado del proyecto:**
+
    - Si está **pausado** → Haz clic en **"Resume"** o **"Restore"**
    - Espera 2-5 minutos a que se reactive
 
@@ -47,6 +50,7 @@ Si el diagnóstico muestra que faltan tablas base (`users`, `workers`, `events`,
 1. **Ve a Supabase Dashboard > SQL Editor**
 
 2. **Ejecuta la migración base:**
+
    ```
    supabase/migrations/20251222200000_create_base_tables.sql
    ```
@@ -58,26 +62,31 @@ Si el diagnóstico muestra que faltan tablas base (`users`, `workers`, `events`,
 Ejecuta las migraciones en este orden exacto:
 
 ### 4.1. Migración Base (si faltan tablas)
+
 ```
 supabase/migrations/20251222200000_create_base_tables.sql
 ```
 
 ### 4.2. Multi-Tenant Fase 1
+
 ```
 supabase/migrations/20251222215551_phase1_multi_tenant_organizations.sql
 ```
 
 ### 4.3. Sistema de Suscripciones
+
 ```
 supabase/migrations/20251223000000_add_subscription_system.sql
 ```
 
 ### 4.4. Triggers de Ratings
+
 ```
 supabase/migrations/20251223010000_add_rating_triggers.sql
 ```
 
 ### 4.5. RLS Básico (Desarrollo)
+
 ```
 supabase/migrations/20251223020000_enable_rls_basic.sql
 ```
@@ -87,6 +96,7 @@ supabase/migrations/20251223020000_enable_rls_basic.sql
 Después de aplicar todas las migraciones:
 
 1. **Ejecuta el diagnóstico nuevamente:**
+
    ```bash
    node scripts/diagnostico-supabase-completo.js
    ```
@@ -99,18 +109,22 @@ Después de aplicar todas las migraciones:
 ## 🚨 Problemas Comunes y Soluciones
 
 ### Error: "relation does not exist"
+
 **Causa:** Falta la tabla base  
 **Solución:** Ejecuta `20251222200000_create_base_tables.sql` primero
 
 ### Error: "column does not exist"
+
 **Causa:** Migración ejecutada fuera de orden  
 **Solución:** Ejecuta las migraciones en el orden correcto
 
 ### Error: "trigger already exists"
+
 **Causa:** Migración ejecutada dos veces  
 **Solución:** Las migraciones son idempotentes, pero si persiste, elimina el trigger manualmente
 
 ### Error: "ENOTFOUND" (DNS)
+
 **Causa:** Proyecto de Supabase pausado o URL incorrecta  
 **Solución:** Reactiva el proyecto en Supabase Dashboard
 
@@ -140,6 +154,7 @@ Después de completar todos los pasos:
 ## 📞 Siguiente Paso
 
 Una vez completado, puedes:
+
 1. Iniciar el servidor: `npm run dev`
 2. Verificar endpoints: `/api/health/supabase`
 3. Probar la aplicación

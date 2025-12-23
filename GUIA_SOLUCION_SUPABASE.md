@@ -2,7 +2,7 @@
 
 ## ❌ Problema Identificado
 
-**Error:** `No se encontró hjtarzunzoedgpsniqc.supabase.co's DNS address`
+**Error:** `No se encontró hjtarzunzoedgpbsniqc.supabase.co's DNS address`
 
 **Causa:** El proyecto de Supabase está **pausado** o **eliminado**.
 
@@ -17,8 +17,8 @@
 
 2. **Busca tu proyecto:**
 
-   - Busca el proyecto con referencia `hjtarzunzoedgpsniqc`
-   - O busca por la URL: `hjtarzunzoedgpsniqc.supabase.co`
+   - Busca el proyecto con referencia `hjtarzunzoedgpbsniqc`
+   - O busca por la URL: `hjtarzunzoedgpbsniqc.supabase.co`
 
 3. **Verifica el estado:**
 

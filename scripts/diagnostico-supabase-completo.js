@@ -38,33 +38,33 @@ const EXPECTED_TABLES = [
   "events",
   "preregistrations",
   "quotes",
-  
+
   // Relaciones
   "event_workers",
   "event_ratings",
   "event_chats",
   "worker_salaries",
   "worker_certificates",
-  
+
   // Sistema
   "subscriptions",
   "notifications",
   "notification_logs",
   "email_templates",
-  
+
   // Penalizaciones
   "penalties",
   "penalty_logs",
   "penalty_appeals",
-  
+
   // Conflictos
   "conflicts",
   "conflict_logs",
-  
+
   // Backups
   "backups",
   "backup_logs",
-  
+
   // Otros
   "incident_reports",
   "ratings",
@@ -157,7 +157,10 @@ function verifySupabaseConnection(supabaseUrl, supabaseKey) {
             log(`   Status: ${res.statusCode}`, "green");
             resolve({ success: true, statusCode: res.statusCode });
           } else {
-            log(`⚠️  Supabase responde con código: ${res.statusCode}`, "yellow");
+            log(
+              `⚠️  Supabase responde con código: ${res.statusCode}`,
+              "yellow"
+            );
             resolve({ success: false, statusCode: res.statusCode });
           }
         });
@@ -166,8 +169,14 @@ function verifySupabaseConnection(supabaseUrl, supabaseKey) {
       req.on("error", (error) => {
         log(`❌ Error al conectar: ${error.message}`, "red");
         if (error.code === "ENOTFOUND") {
-          log("\n   ⚠️  El proyecto de Supabase está pausado o la URL es incorrecta", "yellow");
-          log("   💡 Ve a https://supabase.com/dashboard y verifica el estado", "blue");
+          log(
+            "\n   ⚠️  El proyecto de Supabase está pausado o la URL es incorrecta",
+            "yellow"
+          );
+          log(
+            "   💡 Ve a https://supabase.com/dashboard y verifica el estado",
+            "blue"
+          );
         }
         resolve({ success: false, error: error.message, code: error.code });
       });
@@ -238,7 +247,10 @@ function verifyTables(supabaseUrl, supabaseKey) {
               const json = JSON.parse(data);
               if (json.message && json.message.includes("permission denied")) {
                 existingTables.push(tableName);
-                log(`⚠️  ${tableName} - Existe pero RLS bloquea acceso`, "yellow");
+                log(
+                  `⚠️  ${tableName} - Existe pero RLS bloquea acceso`,
+                  "yellow"
+                );
               } else {
                 missingTables.push(tableName);
                 log(`❌ ${tableName} - Error ${res.statusCode}`, "red");
@@ -294,7 +306,10 @@ async function main() {
 
   if (!allRequired) {
     log("\n❌ Faltan variables de entorno requeridas", "red");
-    log("   Crea un archivo .env.local con las credenciales necesarias", "yellow");
+    log(
+      "   Crea un archivo .env.local con las credenciales necesarias",
+      "yellow"
+    );
     process.exit(1);
   }
 
@@ -302,12 +317,15 @@ async function main() {
   const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
   // 2. Verificar conexión HTTP
-  const connectionResult = await verifySupabaseConnection(supabaseUrl, supabaseKey);
+  const connectionResult = await verifySupabaseConnection(
+    supabaseUrl,
+    supabaseKey
+  );
 
   if (!connectionResult.success) {
     logSection("❌ RESUMEN: CONEXIÓN FALLIDA");
     log("No se puede continuar sin conexión a Supabase", "red");
-    
+
     if (connectionResult.code === "ENOTFOUND") {
       log("\n🔧 SOLUCIONES:", "magenta");
       log("1. Ve a https://supabase.com/dashboard", "yellow");
@@ -319,17 +337,32 @@ async function main() {
   }
 
   // 3. Verificar tablas
-  const { existingTables, missingTables } = await verifyTables(supabaseUrl, supabaseKey);
+  const { existingTables, missingTables } = await verifyTables(
+    supabaseUrl,
+    supabaseKey
+  );
 
   // ============================================
   // RESUMEN FINAL
   // ============================================
   logSection("📊 RESUMEN FINAL");
 
-  log(`Variables de Entorno: ${allRequired ? "✅ OK" : "❌ FALTANTES"}`, allRequired ? "green" : "red");
-  log(`Conexión HTTP: ${connectionResult.success ? "✅ OK" : "❌ ERROR"}`, connectionResult.success ? "green" : "red");
-  log(`Tablas Existentes: ${existingTables.length}/${EXPECTED_TABLES.length}`, existingTables.length === EXPECTED_TABLES.length ? "green" : "yellow");
-  log(`Tablas Faltantes: ${missingTables.length}`, missingTables.length === 0 ? "green" : "red");
+  log(
+    `Variables de Entorno: ${allRequired ? "✅ OK" : "❌ FALTANTES"}`,
+    allRequired ? "green" : "red"
+  );
+  log(
+    `Conexión HTTP: ${connectionResult.success ? "✅ OK" : "❌ ERROR"}`,
+    connectionResult.success ? "green" : "red"
+  );
+  log(
+    `Tablas Existentes: ${existingTables.length}/${EXPECTED_TABLES.length}`,
+    existingTables.length === EXPECTED_TABLES.length ? "green" : "yellow"
+  );
+  log(
+    `Tablas Faltantes: ${missingTables.length}`,
+    missingTables.length === 0 ? "green" : "red"
+  );
 
   if (missingTables.length > 0) {
     log("\n📋 TABLAS FALTANTES:", "magenta");
@@ -340,15 +373,37 @@ async function main() {
     log("\n🔧 PRÓXIMOS PASOS:", "magenta");
     log("1. Ve a Supabase Dashboard > SQL Editor", "yellow");
     log("2. Ejecuta las migraciones en orden:", "yellow");
-    log("   a) supabase/migrations/20251222215551_phase1_multi_tenant_organizations.sql", "blue");
-    log("   b) supabase/migrations/20251223000000_add_subscription_system.sql", "blue");
-    log("   c) supabase/migrations/20251223010000_add_rating_triggers.sql", "blue");
-    log("   d) supabase/migrations/20251223020000_enable_rls_basic.sql", "blue");
-    
-    if (missingTables.includes("users") || missingTables.includes("workers") || missingTables.includes("events")) {
+    log(
+      "   a) supabase/migrations/20251222215551_phase1_multi_tenant_organizations.sql",
+      "blue"
+    );
+    log(
+      "   b) supabase/migrations/20251223000000_add_subscription_system.sql",
+      "blue"
+    );
+    log(
+      "   c) supabase/migrations/20251223010000_add_rating_triggers.sql",
+      "blue"
+    );
+    log(
+      "   d) supabase/migrations/20251223020000_enable_rls_basic.sql",
+      "blue"
+    );
+
+    if (
+      missingTables.includes("users") ||
+      missingTables.includes("workers") ||
+      missingTables.includes("events")
+    ) {
       log("\n⚠️  IMPORTANTE: Faltan tablas base críticas", "yellow");
-      log("   Necesitas crear primero las tablas base antes de ejecutar las migraciones", "yellow");
-      log("   Revisa scripts/create-tables.sql o scripts/supabase-setup.sql", "blue");
+      log(
+        "   Necesitas crear primero las tablas base antes de ejecutar las migraciones",
+        "yellow"
+      );
+      log(
+        "   Revisa scripts/create-tables.sql o scripts/supabase-setup.sql",
+        "blue"
+      );
     }
   } else {
     log("\n✅ Todas las tablas existen", "green");

@@ -88,7 +88,7 @@ Agrega estos secrets:
 
 2. **`SUPABASE_PROJECT_REF`**
 
-   - Valor: El Reference ID de tu proyecto (ej: `hjtarzunzoedgpsniqc`)
+   - Valor: El Reference ID de tu proyecto (ej: `hjtarzunzoedgpbsniqc`)
 
 3. **`SUPABASE_DB_PASSWORD`** (opcional, si usas password)
    - Valor: Contraseña de la base de datos
