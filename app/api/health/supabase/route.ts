@@ -1,11 +1,37 @@
 import { createClient } from "@/lib/supabase";
+import { isEnvValid, getEnvErrors } from "@/lib/config/env";
 
 export async function GET() {
   try {
-    // Crear cliente de Supabase
-    const supabase = createClient();
+    // Verificar configuración primero
+    if (!isEnvValid()) {
+      const errors = getEnvErrors();
+      return Response.json(
+        {
+          status: "error",
+          message: "Configuración de entorno inválida",
+          errors,
+        },
+        { status: 500 }
+      );
+    }
 
-    // Verificar conexión básica
+    // Crear cliente de Supabase
+    let supabase;
+    try {
+      supabase = createClient();
+    } catch (clientError) {
+      return Response.json(
+        {
+          status: "error",
+          message: "Error creando cliente de Supabase",
+          error: clientError instanceof Error ? clientError.message : "Error desconocido",
+        },
+        { status: 500 }
+      );
+    }
+
+    // Verificar conexión básica (intentar con una tabla que debería existir)
     const { data, error } = await supabase
       .from("users")
       .select("count")
