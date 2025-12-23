@@ -85,6 +85,7 @@ CREATE INDEX IF NOT EXISTS idx_worker_certificates_verified ON worker_certificat
 CREATE INDEX IF NOT EXISTS idx_worker_certificates_organization_id ON worker_certificates(organization_id);
 
 -- Trigger para updated_at
+DROP TRIGGER IF EXISTS update_worker_certificates_updated_at ON worker_certificates;
 CREATE TRIGGER update_worker_certificates_updated_at
     BEFORE UPDATE ON worker_certificates
     FOR EACH ROW
@@ -111,6 +112,7 @@ CREATE INDEX IF NOT EXISTS idx_event_ratings_worker_id ON event_ratings(worker_i
 CREATE INDEX IF NOT EXISTS idx_event_ratings_organization_id ON event_ratings(organization_id);
 
 -- Trigger para updated_at
+DROP TRIGGER IF EXISTS update_event_ratings_updated_at ON event_ratings;
 CREATE TRIGGER update_event_ratings_updated_at
     BEFORE UPDATE ON event_ratings
     FOR EACH ROW
@@ -173,6 +175,7 @@ BEGIN
 END $$;
 
 -- Trigger para updated_at
+DROP TRIGGER IF EXISTS update_event_workers_updated_at ON event_workers;
 CREATE TRIGGER update_event_workers_updated_at
     BEFORE UPDATE ON event_workers
     FOR EACH ROW
@@ -221,6 +224,7 @@ CREATE INDEX IF NOT EXISTS idx_subscriptions_status ON subscriptions(status);
 CREATE INDEX IF NOT EXISTS idx_subscriptions_organization_id ON subscriptions(organization_id);
 
 -- Trigger para updated_at
+DROP TRIGGER IF EXISTS update_subscriptions_updated_at ON subscriptions;
 CREATE TRIGGER update_subscriptions_updated_at
     BEFORE UPDATE ON subscriptions
     FOR EACH ROW
@@ -252,6 +256,7 @@ CREATE INDEX IF NOT EXISTS idx_incident_reports_status ON incident_reports(statu
 CREATE INDEX IF NOT EXISTS idx_incident_reports_organization_id ON incident_reports(organization_id);
 
 -- Trigger para updated_at
+DROP TRIGGER IF EXISTS update_incident_reports_updated_at ON incident_reports;
 CREATE TRIGGER update_incident_reports_updated_at
     BEFORE UPDATE ON incident_reports
     FOR EACH ROW
