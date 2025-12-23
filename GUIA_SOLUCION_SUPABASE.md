@@ -11,18 +11,22 @@
 ### Opción 1: Reactivar Proyecto Existente (Recomendado)
 
 1. **Ve al Dashboard de Supabase:**
+
    - Abre: https://supabase.com/dashboard
    - Inicia sesión con tu cuenta
 
 2. **Busca tu proyecto:**
+
    - Busca el proyecto con referencia `hjtarzunzoedgpsniqc`
    - O busca por la URL: `hjtarzunzoedgpsniqc.supabase.co`
 
 3. **Verifica el estado:**
+
    - Si dice **"Paused"** → Haz clic en **"Resume"** o **"Restore"**
    - Espera 2-5 minutos a que se reactive
 
 4. **Verifica las credenciales:**
+
    - Ve a **Settings > API**
    - Verifica que las URLs y keys coincidan con tu `.env.local`
 
@@ -36,6 +40,7 @@
 Si el proyecto fue eliminado o no puedes reactivarlo:
 
 1. **Crea un nuevo proyecto:**
+
    - Ve a: https://supabase.com/dashboard
    - Haz clic en **"New Project"**
    - Completa:
@@ -45,10 +50,12 @@ Si el proyecto fue eliminado o no puedes reactivarlo:
      - **Pricing Plan:** Free (para empezar)
 
 2. **Espera a que se cree:**
+
    - Toma 2-3 minutos
    - Verás un mensaje cuando esté listo
 
 3. **Obtén las credenciales:**
+
    - Ve a **Settings > API**
    - Copia:
      - **Project URL** → `NEXT_PUBLIC_SUPABASE_URL`
@@ -56,6 +63,7 @@ Si el proyecto fue eliminado o no puedes reactivarlo:
      - **service_role** key → `SUPABASE_SERVICE_ROLE_KEY`
 
 4. **Actualiza `.env.local`:**
+
    ```env
    NEXT_PUBLIC_SUPABASE_URL=https://tu-nuevo-proyecto.supabase.co
    NEXT_PUBLIC_SUPABASE_ANON_KEY=tu-nueva-anon-key
@@ -63,6 +71,7 @@ Si el proyecto fue eliminado o no puedes reactivarlo:
    ```
 
 5. **Ejecuta las migraciones:**
+
    - Ve a **SQL Editor** en Supabase Dashboard
    - Ejecuta en orden:
      ```
@@ -86,6 +95,7 @@ Get-Content .env.local | Select-String "SUPABASE"
 ```
 
 Debes ver:
+
 - `NEXT_PUBLIC_SUPABASE_URL=https://...`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY=...`
 - `SUPABASE_SERVICE_ROLE_KEY=...`
@@ -99,6 +109,7 @@ node scripts/verificar-supabase-completo.js
 ### Paso 3: Verificar desde la App
 
 1. Inicia el servidor:
+
    ```bash
    npm run dev
    ```

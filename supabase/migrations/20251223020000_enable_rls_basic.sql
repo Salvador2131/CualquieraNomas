@@ -1,0 +1,126 @@
+-- =====================================================
+-- HABILITAR RLS BÁSICO EN TODAS LAS TABLAS PÚBLICAS
+-- =====================================================
+-- Esta migración habilita RLS en todas las tablas para cumplir con
+-- las recomendaciones de seguridad de Supabase.
+-- 
+-- IMPORTANTE: Las políticas son básicas y permisivas para desarrollo.
+-- Para producción, usar las políticas completas de FASE 2.
+-- =====================================================
+
+-- Lista de todas las tablas que necesitan RLS
+DO $$
+DECLARE
+    table_name TEXT;
+    tables_to_enable_rls TEXT[] := ARRAY[
+        'users',
+        'workers',
+        'employers',
+        'events',
+        'preregistrations',
+        'quotes',
+        'worker_salaries',
+        'penalties',
+        'penalty_logs',
+        'penalty_appeals',
+        'conflicts',
+        'conflict_logs',
+        'backups',
+        'backup_logs',
+        'notifications',
+        'notification_logs',
+        'email_templates',
+        'ratings',
+        'messages',
+        'payments',
+        'worker_certificates',
+        'event_ratings',
+        'event_workers',
+        'event_chats',
+        'subscriptions',
+        'incident_reports',
+        'document_expiry_notifications',
+        'document_validations',
+        'document_validation_logs'
+    ];
+BEGIN
+    FOREACH table_name IN ARRAY tables_to_enable_rls
+    LOOP
+        -- Verificar si la tabla existe
+        IF EXISTS (
+            SELECT FROM information_schema.tables 
+            WHERE table_schema = 'public' 
+            AND table_name = table_name
+        ) THEN
+            -- Habilitar RLS
+            EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
+            
+            -- Crear política básica permisiva para desarrollo
+            -- Esto permite acceso completo mientras se desarrolla
+            -- En producción, reemplazar con políticas específicas de FASE 2
+            
+            -- Política para SELECT: Permitir todo (ajustar en producción)
+            EXECUTE format(
+                'DROP POLICY IF EXISTS "dev_select_all_%s" ON %I',
+                table_name, table_name
+            );
+            EXECUTE format(
+                'CREATE POLICY "dev_select_all_%s" ON %I FOR SELECT USING (true)',
+                table_name, table_name
+            );
+            
+            -- Política para INSERT: Permitir todo (ajustar en producción)
+            EXECUTE format(
+                'DROP POLICY IF EXISTS "dev_insert_all_%s" ON %I',
+                table_name, table_name
+            );
+            EXECUTE format(
+                'CREATE POLICY "dev_insert_all_%s" ON %I FOR INSERT WITH CHECK (true)',
+                table_name, table_name
+            );
+            
+            -- Política para UPDATE: Permitir todo (ajustar en producción)
+            EXECUTE format(
+                'DROP POLICY IF EXISTS "dev_update_all_%s" ON %I',
+                table_name, table_name
+            );
+            EXECUTE format(
+                'CREATE POLICY "dev_update_all_%s" ON %I FOR UPDATE USING (true) WITH CHECK (true)',
+                table_name, table_name
+            );
+            
+            -- Política para DELETE: Permitir todo (ajustar en producción)
+            EXECUTE format(
+                'DROP POLICY IF EXISTS "dev_delete_all_%s" ON %I',
+                table_name, table_name
+            );
+            EXECUTE format(
+                'CREATE POLICY "dev_delete_all_%s" ON %I FOR DELETE USING (true)',
+                table_name, table_name
+            );
+            
+            RAISE NOTICE 'RLS habilitado en tabla: %', table_name;
+        ELSE
+            RAISE NOTICE 'Tabla no existe, saltando: %', table_name;
+        END IF;
+    END LOOP;
+END $$;
+
+-- =====================================================
+-- NOTA IMPORTANTE
+-- =====================================================
+-- Estas políticas son PERMISIVAS y solo para desarrollo.
+-- 
+-- Para producción:
+-- 1. Descomentar y ejecutar: 20251222222149_phase2_multi_tenant_rls_policies.sql
+-- 2. Eliminar estas políticas de desarrollo
+-- 3. Las políticas de FASE 2 reemplazarán estas políticas básicas
+--
+-- Las políticas de desarrollo permiten:
+-- - SELECT: Cualquiera puede leer
+-- - INSERT: Cualquiera puede insertar
+-- - UPDATE: Cualquiera puede actualizar
+-- - DELETE: Cualquiera puede eliminar
+--
+-- ⚠️  NO USAR EN PRODUCCIÓN SIN POLÍTICAS ADECUADAS
+-- =====================================================
