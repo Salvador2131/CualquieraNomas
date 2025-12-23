@@ -25,7 +25,10 @@ export async function GET() {
         {
           status: "error",
           message: "Error creando cliente de Supabase",
-          error: clientError instanceof Error ? clientError.message : "Error desconocido",
+          error:
+            clientError instanceof Error
+              ? clientError.message
+              : "Error desconocido",
         },
         { status: 500 }
       );

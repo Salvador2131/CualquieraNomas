@@ -15,7 +15,9 @@ export async function GET(request: NextRequest) {
           revenue: { total: 0, employerSpent: 0 },
           ratings: { averageWorker: 0 },
           error: true,
-          message: `Configuración inválida: ${errors.join(", ")}. Verifica tus variables de entorno en .env.local`,
+          message: `Configuración inválida: ${errors.join(
+            ", "
+          )}. Verifica tus variables de entorno en .env.local`,
           connected: false,
         },
         { status: 500 }
@@ -34,7 +36,11 @@ export async function GET(request: NextRequest) {
           revenue: { total: 0, employerSpent: 0 },
           ratings: { averageWorker: 0 },
           error: true,
-          message: `Error de conexión con Supabase: ${supabaseError instanceof Error ? supabaseError.message : "Error desconocido"}`,
+          message: `Error de conexión con Supabase: ${
+            supabaseError instanceof Error
+              ? supabaseError.message
+              : "Error desconocido"
+          }`,
           connected: false,
         },
         { status: 500 }
@@ -93,11 +99,15 @@ export async function GET(request: NextRequest) {
 
     // Verificar si hay errores de conexión o tablas no existentes
     if (usersError || workersError || employersError || eventsError) {
-      const firstError = usersError || workersError || employersError || eventsError;
+      const firstError =
+        usersError || workersError || employersError || eventsError;
       console.error("Error consultando Supabase:", firstError);
-      
+
       // Si es un error de tabla no encontrada, dar mensaje más claro
-      if (firstError?.code === "42P01" || firstError?.message?.includes("does not exist")) {
+      if (
+        firstError?.code === "42P01" ||
+        firstError?.message?.includes("does not exist")
+      ) {
         return NextResponse.json(
           {
             users: { total: 0, workers: 0, employers: 0 },
@@ -105,13 +115,14 @@ export async function GET(request: NextRequest) {
             revenue: { total: 0, employerSpent: 0 },
             ratings: { averageWorker: 0 },
             error: true,
-            message: "Las tablas no existen en la base de datos. Ejecuta las migraciones en Supabase SQL Editor.",
+            message:
+              "Las tablas no existen en la base de datos. Ejecuta las migraciones en Supabase SQL Editor.",
             connected: false,
           },
           { status: 500 }
         );
       }
-      
+
       return NextResponse.json(
         {
           users: { total: 0, workers: 0, employers: 0 },
@@ -119,7 +130,9 @@ export async function GET(request: NextRequest) {
           revenue: { total: 0, employerSpent: 0 },
           ratings: { averageWorker: 0 },
           error: true,
-          message: `Error de base de datos: ${firstError?.message || "Error desconocido"}`,
+          message: `Error de base de datos: ${
+            firstError?.message || "Error desconocido"
+          }`,
           connected: false,
         },
         { status: 500 }
