@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { env } from "@/lib/config/env";
 import { createClient } from "@/lib/supabase";
 import { expireOldQuotes } from "@/lib/business-rules";
 
@@ -24,7 +25,7 @@ export async function POST(request: NextRequest) {
     // Verificar que la request viene de un servicio autorizado
     // (opcional: agregar verificación de secret/token)
     const authHeader = request.headers.get("authorization");
-    const cronSecret = process.env.CRON_SECRET;
+    const cronSecret = env.cron.secret;
 
     if (cronSecret && authHeader !== `Bearer ${cronSecret}`) {
       return NextResponse.json({ message: "No autorizado" }, { status: 401 });

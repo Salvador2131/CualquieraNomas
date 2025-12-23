@@ -113,7 +113,7 @@ class NotificationService {
             text: `${data.titulo}\n\n${data.mensaje}${
               data.evento_id
                 ? `\n\nVer evento: ${
-                    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+                    env.app.url
                   }/events/${data.evento_id}`
                 : ""
             }`,

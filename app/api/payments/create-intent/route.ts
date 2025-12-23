@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { env } from "@/lib/config/env";
 import { createClient } from "@/lib/supabase";
 import { getCurrentUserInfo } from "@/lib/utils/api-organization-filter";
 import { z } from "zod";

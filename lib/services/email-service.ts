@@ -1,5 +1,6 @@
 import nodemailer from "nodemailer";
 import { notificationService, EmailTemplate } from "./notification-service";
+import { env } from "@/lib/config/env";
 
 interface EmailConfig {
   host: string;
@@ -30,12 +31,12 @@ class EmailService {
     try {
       // Configuración para desarrollo (Gmail)
       const config: EmailConfig = {
-        host: process.env.SMTP_HOST || "smtp.gmail.com",
-        port: parseInt(process.env.SMTP_PORT || "587"),
-        secure: process.env.SMTP_SECURE === "true",
+        host: env.email.host,
+        port: env.email.port,
+        secure: env.email.secure,
         auth: {
-          user: process.env.SMTP_USER || "",
-          pass: process.env.SMTP_PASS || "",
+          user: env.email.user || "",
+          pass: env.email.pass || "",
         },
       };
 
@@ -108,7 +109,7 @@ class EmailService {
       }
 
       const mailOptions = {
-        from: `"ERP Banquetes" <${process.env.SMTP_USER}>`,
+        from: `"ERP Banquetes" <${env.email.user || "noreply@erpbanquetes.com"}>`,
         to: emailData.to,
         subject: emailData.subject,
         html: emailData.html,
