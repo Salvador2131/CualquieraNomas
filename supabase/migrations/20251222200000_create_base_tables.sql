@@ -11,6 +11,28 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- =====================================================
+-- FUNCIÓN HELPER: Crear índice solo si la columna existe
+-- =====================================================
+CREATE OR REPLACE FUNCTION create_index_if_column_exists(
+    table_name_param TEXT,
+    column_name_param TEXT,
+    index_name_param TEXT
+)
+RETURNS VOID AS $$
+BEGIN
+    IF EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = table_name_param 
+        AND column_name = column_name_param
+    ) THEN
+        EXECUTE format('CREATE INDEX IF NOT EXISTS %I ON %I(%I)', 
+            index_name_param, table_name_param, column_name_param);
+    END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+-- =====================================================
 -- 1. TABLA USERS (Usuarios del sistema)
 -- =====================================================
 
