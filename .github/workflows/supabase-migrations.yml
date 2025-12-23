@@ -77,7 +77,8 @@ jobs:
           SUPABASE_DB_PASSWORD: ${{ secrets.SUPABASE_DB_PASSWORD }}
         run: |
           echo "🚀 Aplicando migraciones..."
-          supabase db push
+          echo "📝 Usando --include-all para aplicar todas las migraciones (incluyendo las anteriores)"
+          supabase db push --include-all
           if [ $? -eq 0 ]; then
             echo "✅ Migraciones aplicadas exitosamente"
           else
