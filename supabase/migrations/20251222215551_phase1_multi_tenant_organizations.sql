@@ -334,20 +334,52 @@ ALTER COLUMN organization_id SET NOT NULL;
 -- 6. CREAR ÍNDICES PARA organization_id
 -- =====================================================
 
+-- Índices para tablas que siempre existen
 CREATE INDEX IF NOT EXISTS idx_users_organization_id ON users(organization_id);
 CREATE INDEX IF NOT EXISTS idx_preregistrations_organization_id ON preregistrations(organization_id);
 CREATE INDEX IF NOT EXISTS idx_events_organization_id ON events(organization_id);
-CREATE INDEX IF NOT EXISTS idx_notifications_organization_id ON notifications(organization_id);
-CREATE INDEX IF NOT EXISTS idx_email_templates_organization_id ON email_templates(organization_id);
-CREATE INDEX IF NOT EXISTS idx_penalties_organization_id ON penalties(organization_id);
-CREATE INDEX IF NOT EXISTS idx_penalty_logs_organization_id ON penalty_logs(organization_id);
-CREATE INDEX IF NOT EXISTS idx_penalty_appeals_organization_id ON penalty_appeals(organization_id);
-CREATE INDEX IF NOT EXISTS idx_conflicts_organization_id ON conflicts(organization_id);
-CREATE INDEX IF NOT EXISTS idx_conflict_logs_organization_id ON conflict_logs(organization_id);
-CREATE INDEX IF NOT EXISTS idx_backups_organization_id ON backups(organization_id);
-CREATE INDEX IF NOT EXISTS idx_backup_logs_organization_id ON backup_logs(organization_id);
 CREATE INDEX IF NOT EXISTS idx_workers_organization_id ON workers(organization_id);
 CREATE INDEX IF NOT EXISTS idx_worker_salaries_organization_id ON worker_salaries(organization_id);
+
+-- Índices para tablas opcionales (solo si existen)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'notifications') THEN
+        CREATE INDEX IF NOT EXISTS idx_notifications_organization_id ON notifications(organization_id);
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'email_templates') THEN
+        CREATE INDEX IF NOT EXISTS idx_email_templates_organization_id ON email_templates(organization_id);
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'penalties') THEN
+        CREATE INDEX IF NOT EXISTS idx_penalties_organization_id ON penalties(organization_id);
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'penalty_logs') THEN
+        CREATE INDEX IF NOT EXISTS idx_penalty_logs_organization_id ON penalty_logs(organization_id);
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'penalty_appeals') THEN
+        CREATE INDEX IF NOT EXISTS idx_penalty_appeals_organization_id ON penalty_appeals(organization_id);
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'conflicts') THEN
+        CREATE INDEX IF NOT EXISTS idx_conflicts_organization_id ON conflicts(organization_id);
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'conflict_logs') THEN
+        CREATE INDEX IF NOT EXISTS idx_conflict_logs_organization_id ON conflict_logs(organization_id);
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'backups') THEN
+        CREATE INDEX IF NOT EXISTS idx_backups_organization_id ON backups(organization_id);
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'backup_logs') THEN
+        CREATE INDEX IF NOT EXISTS idx_backup_logs_organization_id ON backup_logs(organization_id);
+    END IF;
+END $$;
 
 -- =====================================================
 -- 7. ACTUALIZAR POLÍTICAS RLS PARA MULTI-TENANT
