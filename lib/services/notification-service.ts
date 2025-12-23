@@ -99,10 +99,7 @@ class NotificationService {
                 <p style="color: #666; line-height: 1.6;">${data.mensaje}</p>
                 ${
                   data.evento_id
-                    ? `<p style="margin-top: 20px;"><a href="${
-                        process.env.NEXT_PUBLIC_APP_URL ||
-                        "http://localhost:3000"
-                      }/events/${
+                    ? `<p style="margin-top: 20px;"><a href="${env.app.url}/events/${
                         data.evento_id
                       }" style="color: #007bff; text-decoration: none;">Ver evento</a></p>`
                     : ""
