@@ -5,6 +5,7 @@
 El workflow está configurado en: `.github/workflows/supabase-migrations.yml`
 
 **Se ejecuta cuando:**
+
 - Se hace push a `main` o `develop`
 - Y hay cambios en `supabase/migrations/**`
 
@@ -13,11 +14,13 @@ El workflow está configurado en: `.github/workflows/supabase-migrations.yml`
 ### 1. GitHub Secrets Configurados
 
 Ve a tu repositorio en GitHub:
+
 - **Settings** > **Secrets and variables** > **Actions**
 
 Debes tener estos 3 secrets configurados:
 
 #### Secret 1: `SUPABASE_ACCESS_TOKEN`
+
 - **Valor:** Tu Access Token de Supabase
 - **Cómo obtenerlo:**
   1. Ve a: https://supabase.com/dashboard/account/tokens
@@ -26,6 +29,7 @@ Debes tener estos 3 secrets configurados:
   4. Copia el token (solo se muestra una vez)
 
 #### Secret 2: `SUPABASE_PROJECT_REF`
+
 - **Valor:** `hjtarzunzoedgpbsniqc` (tu Project ID correcto)
 - **Cómo verificar:**
   1. Ve a: https://supabase.com/dashboard
@@ -34,6 +38,7 @@ Debes tener estos 3 secrets configurados:
   4. Copia el **"Reference ID"**
 
 #### Secret 3: `SUPABASE_DB_PASSWORD` (Opcional pero recomendado)
+
 - **Valor:** La contraseña de tu base de datos de Supabase
 - **Cómo obtenerla:**
   1. Ve a: **Settings** > **Database**
@@ -49,29 +54,37 @@ Debes tener estos 3 secrets configurados:
 ## ❌ Problemas Comunes
 
 ### Problema 1: Workflow no se ejecuta
+
 **Causa:** No hay cambios en `supabase/migrations/**` o los secrets no están configurados
 
 **Solución:**
+
 - Verifica que los secrets estén configurados
 - Haz un cambio pequeño en una migración para forzar la ejecución
 
 ### Problema 2: Error "SUPABASE_PROJECT_REF no está configurado"
+
 **Causa:** El secret `SUPABASE_PROJECT_REF` no existe o está vacío
 
 **Solución:**
+
 - Agrega el secret con el valor: `hjtarzunzoedgpbsniqc`
 
 ### Problema 3: Error "SUPABASE_ACCESS_TOKEN no está configurado"
+
 **Causa:** El secret `SUPABASE_ACCESS_TOKEN` no existe o está vacío
 
 **Solución:**
+
 - Genera un nuevo token en Supabase Dashboard
 - Agrega el secret con el token
 
 ### Problema 4: Error de migración
+
 **Causa:** La migración tiene errores SQL
 
 **Solución:**
+
 - Revisa los logs del workflow en GitHub Actions
 - Corrige el error en la migración
 - Haz push nuevamente

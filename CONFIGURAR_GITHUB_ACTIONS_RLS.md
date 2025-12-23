@@ -5,6 +5,7 @@
 El workflow está configurado en: `.github/workflows/supabase-migrations.yml`
 
 **Se ejecuta automáticamente cuando:**
+
 - Haces push a `main` o `develop`
 - Y hay cambios en `supabase/migrations/**`
 
@@ -30,6 +31,7 @@ El workflow necesita **3 secrets** configurados en GitHub. Si no están configur
 - Click: **Add secret**
 
 **Verificar valor correcto:**
+
 - Ve a: https://supabase.com/dashboard
 - Selecciona tu proyecto
 - **Settings** > **General**
@@ -42,6 +44,7 @@ El workflow necesita **3 secrets** configurados en GitHub. Si no están configur
 - Click: **Add secret**
 
 **Cómo obtenerlo:**
+
 1. Ve a: https://supabase.com/dashboard/account/tokens
 2. Click en **"Generate new token"**
 3. Dale un nombre (ej: "GitHub Actions")
@@ -55,6 +58,7 @@ El workflow necesita **3 secrets** configurados en GitHub. Si no están configur
 - Click: **Add secret**
 
 **Cómo obtenerla:**
+
 1. Ve a: **Settings** > **Database**
 2. Si no la recuerdas, puedes resetearla
 
@@ -77,29 +81,37 @@ Si quieres ejecutar el workflow ahora:
 ## ❌ Errores Comunes
 
 ### Error: "SUPABASE_PROJECT_REF no está configurado"
+
 **Causa:** El secret no existe o está vacío
 
 **Solución:**
+
 - Agrega el secret con el valor: `hjtarzunzoedgpbsniqc` (con "gpb")
 
 ### Error: "SUPABASE_ACCESS_TOKEN no está configurado"
+
 **Causa:** El secret no existe o está vacío
 
 **Solución:**
+
 - Genera un nuevo token en Supabase Dashboard
 - Agrega el secret con el token
 
 ### Error: "Project not found" o "Invalid project ref"
+
 **Causa:** El `SUPABASE_PROJECT_REF` tiene el valor incorrecto
 
 **Solución:**
+
 - Verifica que sea: `hjtarzunzoedgpbsniqc` (con "gpb", NO "gps")
 - Actualiza el secret si es necesario
 
 ### Workflow no se ejecuta
+
 **Causa:** No hay cambios en `supabase/migrations/**` o los secrets no están configurados
 
 **Solución:**
+
 - Verifica que los secrets estén configurados
 - Haz un cambio pequeño en una migración para forzar la ejecución
 - O ejecuta el workflow manualmente
