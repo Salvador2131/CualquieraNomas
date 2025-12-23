@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase";
 import { emailService } from "./email-service";
+import { env } from "@/lib/config/env";
 
 export interface NotificationData {
   destinatario_id?: string;

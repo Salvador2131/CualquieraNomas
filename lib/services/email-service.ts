@@ -173,7 +173,7 @@ class EmailService {
           evento_presupuesto: (
             preregistro.presupuesto_estimado || 0
           ).toString(),
-          admin_dashboard_url: `${process.env.NEXT_PUBLIC_APP_URL}/preregistrations`,
+          admin_dashboard_url: `${env.app.url}/preregistrations`,
         };
 
         return this.sendTemplateEmail(
@@ -280,7 +280,7 @@ class EmailService {
           evento_ubicacion: evento.ubicacion,
           evento_invitados: evento.numero_invitados.toString(),
           worker_rol: "Asignado",
-          dashboard_url: `${process.env.NEXT_PUBLIC_APP_URL}/worker-dashboard`,
+          dashboard_url: `${env.app.url}/worker-dashboard`,
         };
 
         return this.sendTemplateEmail("nuevo_evento_worker", email, variables);
