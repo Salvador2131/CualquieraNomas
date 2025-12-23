@@ -26,7 +26,17 @@ CREATE INDEX IF NOT EXISTS idx_organizations_slug ON organizations(slug);
 CREATE INDEX IF NOT EXISTS idx_organizations_status ON organizations(status);
 CREATE INDEX IF NOT EXISTS idx_organizations_plan ON organizations(plan);
 
+-- Crear función update_updated_at_column si no existe
+CREATE OR REPLACE FUNCTION update_updated_at_column()
+RETURNS TRIGGER AS $$
+BEGIN
+    NEW.updated_at = NOW();
+    RETURN NEW;
+END;
+$$ LANGUAGE plpgsql;
+
 -- Trigger para updated_at
+DROP TRIGGER IF EXISTS update_organizations_updated_at ON organizations;
 CREATE TRIGGER update_organizations_updated_at
     BEFORE UPDATE ON organizations
     FOR EACH ROW
@@ -49,13 +59,23 @@ ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DE
 ALTER TABLE events 
 ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
--- Tabla notifications
-ALTER TABLE notifications 
-ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+-- Tabla notifications (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'notifications') THEN
+        ALTER TABLE notifications 
+        ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+    END IF;
+END $$;
 
--- Tabla email_templates
-ALTER TABLE email_templates 
-ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+-- Tabla email_templates (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'email_templates') THEN
+        ALTER TABLE email_templates 
+        ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+    END IF;
+END $$;
 
 -- Tabla penalties
 ALTER TABLE penalties 
@@ -69,21 +89,41 @@ ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DE
 ALTER TABLE penalty_appeals 
 ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
 
--- Tabla conflicts
-ALTER TABLE conflicts 
-ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+-- Tabla conflicts (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'conflicts') THEN
+        ALTER TABLE conflicts 
+        ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+    END IF;
+END $$;
 
--- Tabla conflict_logs
-ALTER TABLE conflict_logs 
-ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+-- Tabla conflict_logs (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'conflict_logs') THEN
+        ALTER TABLE conflict_logs 
+        ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+    END IF;
+END $$;
 
--- Tabla backups
-ALTER TABLE backups 
-ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+-- Tabla backups (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'backups') THEN
+        ALTER TABLE backups 
+        ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+    END IF;
+END $$;
 
--- Tabla backup_logs
-ALTER TABLE backup_logs 
-ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+-- Tabla backup_logs (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'backup_logs') THEN
+        ALTER TABLE backup_logs 
+        ADD COLUMN IF NOT EXISTS organization_id UUID REFERENCES organizations(id) ON DELETE CASCADE;
+    END IF;
+END $$;
 
 -- Tabla workers
 ALTER TABLE workers 
@@ -124,41 +164,95 @@ UPDATE events
 SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
 WHERE organization_id IS NULL;
 
-UPDATE notifications 
-SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
-WHERE organization_id IS NULL;
+-- Actualizar notifications (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'notifications') THEN
+        UPDATE notifications 
+        SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
+        WHERE organization_id IS NULL;
+    END IF;
+END $$;
 
-UPDATE email_templates 
-SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
-WHERE organization_id IS NULL;
+-- Actualizar email_templates (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'email_templates') THEN
+        UPDATE email_templates 
+        SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
+        WHERE organization_id IS NULL;
+    END IF;
+END $$;
 
-UPDATE penalties 
-SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
-WHERE organization_id IS NULL;
+-- Actualizar penalties (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'penalties') THEN
+        UPDATE penalties 
+        SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
+        WHERE organization_id IS NULL;
+    END IF;
+END $$;
 
-UPDATE penalty_logs 
-SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
-WHERE organization_id IS NULL;
+-- Actualizar penalty_logs (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'penalty_logs') THEN
+        UPDATE penalty_logs 
+        SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
+        WHERE organization_id IS NULL;
+    END IF;
+END $$;
 
-UPDATE penalty_appeals 
-SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
-WHERE organization_id IS NULL;
+-- Actualizar penalty_appeals (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'penalty_appeals') THEN
+        UPDATE penalty_appeals 
+        SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
+        WHERE organization_id IS NULL;
+    END IF;
+END $$;
 
-UPDATE conflicts 
-SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
-WHERE organization_id IS NULL;
+-- Actualizar conflicts (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'conflicts') THEN
+        UPDATE conflicts 
+        SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
+        WHERE organization_id IS NULL;
+    END IF;
+END $$;
 
-UPDATE conflict_logs 
-SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
-WHERE organization_id IS NULL;
+-- Actualizar conflict_logs (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'conflict_logs') THEN
+        UPDATE conflict_logs 
+        SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
+        WHERE organization_id IS NULL;
+    END IF;
+END $$;
 
-UPDATE backups 
-SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
-WHERE organization_id IS NULL;
+-- Actualizar backups (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'backups') THEN
+        UPDATE backups 
+        SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
+        WHERE organization_id IS NULL;
+    END IF;
+END $$;
 
-UPDATE backup_logs 
-SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
-WHERE organization_id IS NULL;
+-- Actualizar backup_logs (solo si existe)
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'backup_logs') THEN
+        UPDATE backup_logs 
+        SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
+        WHERE organization_id IS NULL;
+    END IF;
+END $$;
 
 UPDATE workers 
 SET organization_id = '00000000-0000-0000-0000-000000000001'::uuid 
@@ -181,32 +275,54 @@ ALTER COLUMN organization_id SET NOT NULL;
 ALTER TABLE events 
 ALTER COLUMN organization_id SET NOT NULL;
 
-ALTER TABLE notifications 
-ALTER COLUMN organization_id SET NOT NULL;
-
-ALTER TABLE email_templates 
-ALTER COLUMN organization_id SET NOT NULL;
-
-ALTER TABLE penalties 
-ALTER COLUMN organization_id SET NOT NULL;
-
-ALTER TABLE penalty_logs 
-ALTER COLUMN organization_id SET NOT NULL;
-
-ALTER TABLE penalty_appeals 
-ALTER COLUMN organization_id SET NOT NULL;
-
-ALTER TABLE conflicts 
-ALTER COLUMN organization_id SET NOT NULL;
-
-ALTER TABLE conflict_logs 
-ALTER COLUMN organization_id SET NOT NULL;
-
-ALTER TABLE backups 
-ALTER COLUMN organization_id SET NOT NULL;
-
-ALTER TABLE backup_logs 
-ALTER COLUMN organization_id SET NOT NULL;
+-- Hacer organization_id NOT NULL solo si la tabla existe y tiene la columna
+DO $$
+BEGIN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'notifications') 
+       AND EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'notifications' AND column_name = 'organization_id') THEN
+        ALTER TABLE notifications ALTER COLUMN organization_id SET NOT NULL;
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'email_templates') 
+       AND EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'email_templates' AND column_name = 'organization_id') THEN
+        ALTER TABLE email_templates ALTER COLUMN organization_id SET NOT NULL;
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'penalties') 
+       AND EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'penalties' AND column_name = 'organization_id') THEN
+        ALTER TABLE penalties ALTER COLUMN organization_id SET NOT NULL;
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'penalty_logs') 
+       AND EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'penalty_logs' AND column_name = 'organization_id') THEN
+        ALTER TABLE penalty_logs ALTER COLUMN organization_id SET NOT NULL;
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'penalty_appeals') 
+       AND EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'penalty_appeals' AND column_name = 'organization_id') THEN
+        ALTER TABLE penalty_appeals ALTER COLUMN organization_id SET NOT NULL;
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'conflicts') 
+       AND EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'conflicts' AND column_name = 'organization_id') THEN
+        ALTER TABLE conflicts ALTER COLUMN organization_id SET NOT NULL;
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'conflict_logs') 
+       AND EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'conflict_logs' AND column_name = 'organization_id') THEN
+        ALTER TABLE conflict_logs ALTER COLUMN organization_id SET NOT NULL;
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'backups') 
+       AND EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'backups' AND column_name = 'organization_id') THEN
+        ALTER TABLE backups ALTER COLUMN organization_id SET NOT NULL;
+    END IF;
+    
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'backup_logs') 
+       AND EXISTS (SELECT FROM information_schema.columns WHERE table_name = 'backup_logs' AND column_name = 'organization_id') THEN
+        ALTER TABLE backup_logs ALTER COLUMN organization_id SET NOT NULL;
+    END IF;
+END $$;
 
 ALTER TABLE workers 
 ALTER COLUMN organization_id SET NOT NULL;
