@@ -49,9 +49,9 @@ BEGIN
     LOOP
         -- Verificar si la tabla existe
         IF EXISTS (
-            SELECT FROM information_schema.tables 
+            SELECT 1 FROM information_schema.tables 
             WHERE table_schema = 'public' 
-            AND table_name = table_name
+            AND information_schema.tables.table_name = table_name
         ) THEN
             -- Habilitar RLS (si no está ya habilitado, no causa error)
             EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
