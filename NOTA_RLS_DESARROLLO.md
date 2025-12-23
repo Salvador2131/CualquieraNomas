@@ -55,11 +55,13 @@ Aunque RLS está desactivado, el sistema tiene protección a nivel de aplicació
 ### Opción 1: Habilitar RLS Básico (Desarrollo)
 
 Ejecuta la migración:
+
 ```sql
 supabase/migrations/20251223020000_enable_rls_basic.sql
 ```
 
 Esta migración:
+
 - ✅ Habilita RLS en todas las tablas
 - ✅ Crea políticas permisivas para desarrollo
 - ✅ Cumple con las recomendaciones del linter
@@ -68,6 +70,7 @@ Esta migración:
 ### Opción 2: Habilitar RLS Completo (Producción)
 
 1. Descomentar la migración:
+
    ```
    supabase/migrations/20251222222149_phase2_multi_tenant_rls_policies.sql
    ```
@@ -77,6 +80,7 @@ Esta migración:
 3. Eliminar las políticas de desarrollo de la Opción 1
 
 Esta migración:
+
 - ✅ Habilita RLS con políticas específicas por tabla
 - ✅ Filtra por `organization_id`
 - ✅ Respeta roles de usuario
@@ -94,11 +98,13 @@ Si estás solo en desarrollo y no planeas ir a producción pronto:
 ## 📝 Recomendación
 
 **Para desarrollo rápido:**
+
 - Usa la **Opción 1** (RLS básico permisivo)
 - Esto silencia las advertencias del linter
 - Permite desarrollo sin restricciones
 
 **Para producción:**
+
 - Usa la **Opción 2** (RLS completo)
 - Implementa políticas específicas
 - Protege los datos adecuadamente
@@ -106,6 +112,7 @@ Si estás solo en desarrollo y no planeas ir a producción pronto:
 ## 🚀 Próximos Pasos
 
 1. **Ahora (Desarrollo):**
+
    - Ejecutar `20251223020000_enable_rls_basic.sql`
    - Verificar que el linter ya no reporte errores
 
