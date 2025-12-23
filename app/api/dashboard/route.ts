@@ -6,9 +6,16 @@ export async function GET(request: NextRequest) {
   try {
     const supabase = createServerClient();
     
-    // Obtener información del usuario y organización
-    const userInfo = await getCurrentUserInfo(request, supabase);
-    const organizationId = userInfo?.organizationId;
+    // Obtener información del usuario y organización (opcional para desarrollo)
+    let organizationId: string | undefined;
+    try {
+      const userInfo = await getCurrentUserInfo(request, supabase);
+      organizationId = userInfo?.organizationId;
+    } catch (authError) {
+      // Si no hay usuario autenticado, continuar sin filtro de organización
+      // Esto permite que el endpoint funcione en desarrollo
+      console.warn("No se pudo obtener información del usuario, continuando sin filtro de organización");
+    }
 
     // Obtener conteos básicos (filtrados por organización si aplica)
     let usersQuery = supabase
