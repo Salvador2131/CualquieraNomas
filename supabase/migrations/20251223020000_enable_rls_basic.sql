@@ -13,6 +13,7 @@ DO $$
 DECLARE
     table_name TEXT;
     tables_to_enable_rls TEXT[] := ARRAY[
+        'organizations',
         'users',
         'workers',
         'employers',
@@ -52,18 +53,25 @@ BEGIN
             WHERE table_schema = 'public' 
             AND table_name = table_name
         ) THEN
-            -- Habilitar RLS
+            -- Habilitar RLS (si no está ya habilitado, no causa error)
             EXECUTE format('ALTER TABLE %I ENABLE ROW LEVEL SECURITY', table_name);
             
-            -- Crear política básica permisiva para desarrollo
+            -- Eliminar políticas existentes de desarrollo si existen (para evitar duplicados)
+            EXECUTE format('DROP POLICY IF EXISTS "dev_select_all_%s" ON %I', table_name, table_name);
+            EXECUTE format('DROP POLICY IF EXISTS "dev_insert_all_%s" ON %I', table_name, table_name);
+            EXECUTE format('DROP POLICY IF EXISTS "dev_update_all_%s" ON %I', table_name, table_name);
+            EXECUTE format('DROP POLICY IF EXISTS "dev_delete_all_%s" ON %I', table_name, table_name);
+            
+            -- También eliminar política antigua de organizations si existe
+            IF table_name = 'organizations' THEN
+                EXECUTE 'DROP POLICY IF EXISTS "Admins can view all organizations" ON organizations';
+            END IF;
+            
+            -- Crear políticas básicas permisivas para desarrollo
             -- Esto permite acceso completo mientras se desarrolla
             -- En producción, reemplazar con políticas específicas de FASE 2
             
             -- Política para SELECT: Permitir todo (ajustar en producción)
-            EXECUTE format(
-                'DROP POLICY IF EXISTS "dev_select_all_%s" ON %I',
-                table_name, table_name
-            );
             EXECUTE format(
                 'CREATE POLICY "dev_select_all_%s" ON %I FOR SELECT USING (true)',
                 table_name, table_name
@@ -71,29 +79,17 @@ BEGIN
             
             -- Política para INSERT: Permitir todo (ajustar en producción)
             EXECUTE format(
-                'DROP POLICY IF EXISTS "dev_insert_all_%s" ON %I',
-                table_name, table_name
-            );
-            EXECUTE format(
                 'CREATE POLICY "dev_insert_all_%s" ON %I FOR INSERT WITH CHECK (true)',
                 table_name, table_name
             );
             
             -- Política para UPDATE: Permitir todo (ajustar en producción)
             EXECUTE format(
-                'DROP POLICY IF EXISTS "dev_update_all_%s" ON %I',
-                table_name, table_name
-            );
-            EXECUTE format(
                 'CREATE POLICY "dev_update_all_%s" ON %I FOR UPDATE USING (true) WITH CHECK (true)',
                 table_name, table_name
             );
             
             -- Política para DELETE: Permitir todo (ajustar en producción)
-            EXECUTE format(
-                'DROP POLICY IF EXISTS "dev_delete_all_%s" ON %I',
-                table_name, table_name
-            );
             EXECUTE format(
                 'CREATE POLICY "dev_delete_all_%s" ON %I FOR DELETE USING (true)',
                 table_name, table_name
