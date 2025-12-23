@@ -26,6 +26,7 @@ import {
   Camera,
   Bell,
   LogOut,
+  CreditCard,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { OrganizationSelector } from "@/components/organization-selector";
@@ -50,6 +51,21 @@ const navigation = [
     name: "Trabajadores",
     href: "/workers",
     icon: Users,
+  },
+  {
+    name: "Mis Asignaciones",
+    href: "/workers/assignments",
+    icon: Calendar,
+  },
+  {
+    name: "Eventos Disponibles",
+    href: "/workers/available-events",
+    icon: Calendar,
+  },
+  {
+    name: "Mis Certificados",
+    href: "/workers/certificates",
+    icon: FileText,
   },
   {
     name: "Lealtad",

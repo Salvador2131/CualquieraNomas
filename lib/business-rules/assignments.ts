@@ -43,12 +43,12 @@ export async function validateWorkerAvailability(
       .from("workers")
       .select("id, is_active, status, user_id, organization_id")
       .eq("id", workerId);
-    
+
     // Aplicar filtro de organización si se proporciona
     if (organizationId) {
       workerQuery = workerQuery.eq("organization_id", organizationId);
     }
-    
+
     const { data: worker, error: workerError } = await workerQuery.single();
 
     if (workerError || !worker) {
@@ -206,7 +206,8 @@ export async function validateMultipleWorkers(
   eventStartTime: string,
   eventEndTime: string,
   excludeEventId: string | null,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  organizationId?: string
 ): Promise<{
   allAvailable: boolean;
   results: Array<{
@@ -223,7 +224,8 @@ export async function validateMultipleWorkers(
         eventStartTime,
         eventEndTime,
         excludeEventId,
-        supabase
+        supabase,
+        organizationId
       );
       return {
         workerId,
@@ -246,7 +248,8 @@ export async function validateMultipleWorkers(
 export async function validateWorkerSpecialization(
   workerId: string,
   requiredSpecialization: string | null,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  organizationId?: string
 ): Promise<ValidationResult> {
   const errors: string[] = [];
 
@@ -254,11 +257,17 @@ export async function validateWorkerSpecialization(
     return { isValid: true, errors: [] };
   }
 
-  const { data: worker, error } = await supabase
+  let workerQuery = supabase
     .from("workers")
     .select("specialization")
-    .eq("id", workerId)
-    .single();
+    .eq("id", workerId);
+
+  // Aplicar filtro de organización si se proporciona
+  if (organizationId) {
+    workerQuery = workerQuery.eq("organization_id", organizationId);
+  }
+
+  const { data: worker, error } = await workerQuery.single();
 
   if (error || !worker) {
     errors.push(`Trabajador no encontrado: ${error?.message || "ID inválido"}`);

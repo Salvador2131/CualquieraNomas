@@ -23,18 +23,26 @@ export interface SalaryInput {
  */
 export async function validateSalaryEntry(
   salary: SalaryInput,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  organizationId?: string
 ): Promise<ValidationResult> {
   const errors: string[] = [];
 
   // 1. Verificar duplicado (ya existe)
-  const { data: existing, error: duplicateError } = await supabase
+  let duplicateQuery = supabase
     .from("worker_salaries")
     .select("id")
     .eq("worker_id", salary.worker_id)
     .eq("month", salary.month)
-    .eq("year", salary.year)
-    .single();
+    .eq("year", salary.year);
+
+  // Aplicar filtro de organización si se proporciona
+  if (organizationId) {
+    duplicateQuery = duplicateQuery.eq("organization_id", organizationId);
+  }
+
+  const { data: existing, error: duplicateError } =
+    await duplicateQuery.single();
 
   if (existing) {
     errors.push(
@@ -108,11 +116,17 @@ export async function validateSalaryEntry(
   }
 
   // 7. Verificar que el trabajador existe
-  const { data: worker, error: workerError } = await supabase
+  let workerQuery = supabase
     .from("workers")
     .select("id, hourly_rate")
-    .eq("id", salary.worker_id)
-    .single();
+    .eq("id", salary.worker_id);
+
+  // Aplicar filtro de organización si se proporciona
+  if (organizationId) {
+    workerQuery = workerQuery.eq("organization_id", organizationId);
+  }
+
+  const { data: worker, error: workerError } = await workerQuery.single();
 
   if (workerError || !worker) {
     errors.push(

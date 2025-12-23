@@ -26,7 +26,13 @@ export type EntityType =
   | "salary"
   | "preregistration"
   | "notification"
-  | "user";
+  | "user"
+  | "conflict"
+  | "penalty"
+  | "rating"
+  | "incident"
+  | "certificate"
+  | "subscription";
 
 export interface AuditLog {
   action: AuditAction;
@@ -46,7 +52,7 @@ export interface AuditLog {
  * Registra un evento de auditoría
  */
 export async function logAuditEvent(
-  auditLog: AuditLog,
+  auditLog: AuditLog & { organization_id?: string },
   supabase: SupabaseClient
 ): Promise<void> {
   try {
@@ -59,6 +65,7 @@ export async function logAuditEvent(
       ip_address: auditLog.ip_address || null,
       user_agent: auditLog.user_agent || null,
       metadata: auditLog.metadata || null,
+      organization_id: auditLog.organization_id || null,
       created_at: new Date().toISOString(),
     });
 
@@ -85,6 +92,7 @@ export async function logCreate(
     ip_address?: string;
     user_agent?: string;
     metadata?: Record<string, any>;
+    organization_id?: string;
   }
 ): Promise<void> {
   await logAuditEvent(
@@ -100,6 +108,7 @@ export async function logCreate(
       ip_address: options?.ip_address,
       user_agent: options?.user_agent,
       metadata: options?.metadata,
+      organization_id: options?.organization_id,
     },
     supabase
   );
@@ -119,6 +128,7 @@ export async function logUpdate(
     ip_address?: string;
     user_agent?: string;
     metadata?: Record<string, any>;
+    organization_id?: string;
   }
 ): Promise<void> {
   // Solo registrar campos que cambiaron
@@ -153,6 +163,7 @@ export async function logUpdate(
         ...options?.metadata,
         changed_fields: Object.keys(changedFields),
       },
+      organization_id: options?.organization_id,
     },
     supabase
   );
@@ -171,6 +182,7 @@ export async function logDelete(
     ip_address?: string;
     user_agent?: string;
     metadata?: Record<string, any>;
+    organization_id?: string;
   }
 ): Promise<void> {
   await logAuditEvent(
@@ -186,6 +198,7 @@ export async function logDelete(
       ip_address: options?.ip_address,
       user_agent: options?.user_agent,
       metadata: options?.metadata,
+      organization_id: options?.organization_id,
     },
     supabase
   );
@@ -203,6 +216,7 @@ export async function logLogin(
     user_agent?: string;
     success?: boolean;
     error?: string;
+    organization_id?: string;
   }
 ): Promise<void> {
   await logAuditEvent(
@@ -218,6 +232,7 @@ export async function logLogin(
       },
       ip_address: options?.ip_address,
       user_agent: options?.user_agent,
+      organization_id: options?.organization_id,
     },
     supabase
   );
@@ -232,6 +247,7 @@ export async function logLogout(
   options?: {
     ip_address?: string;
     user_agent?: string;
+    organization_id?: string;
   }
 ): Promise<void> {
   await logAuditEvent(
@@ -242,6 +258,7 @@ export async function logLogout(
       user_id: userId,
       ip_address: options?.ip_address,
       user_agent: options?.user_agent,
+      organization_id: options?.organization_id,
     },
     supabase
   );
@@ -257,6 +274,7 @@ export async function getAuditLogs(
   options?: {
     limit?: number;
     offset?: number;
+    organizationId?: string;
   }
 ) {
   let query = supabase
@@ -265,6 +283,11 @@ export async function getAuditLogs(
     .eq("entity_type", entityType)
     .eq("entity_id", entityId)
     .order("created_at", { ascending: false });
+
+  // Aplicar filtro de organización si se proporciona
+  if (options?.organizationId) {
+    query = query.eq("organization_id", options.organizationId);
+  }
 
   if (options?.limit) {
     query = query.limit(options.limit);
@@ -290,6 +313,7 @@ export async function getUserAuditLogs(
     limit?: number;
     offset?: number;
     action?: AuditAction;
+    organizationId?: string;
   }
 ) {
   let query = supabase
@@ -297,6 +321,11 @@ export async function getUserAuditLogs(
     .select("*")
     .eq("user_id", userId)
     .order("created_at", { ascending: false });
+
+  // Aplicar filtro de organización si se proporciona
+  if (options?.organizationId) {
+    query = query.eq("organization_id", options.organizationId);
+  }
 
   if (options?.action) {
     query = query.eq("action", options.action);

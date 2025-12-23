@@ -15,7 +15,9 @@ import { apiLogger } from "@/lib/logger";
 import {
   getCurrentOrganizationId,
   addOrganizationFilter,
+  getCurrentUserInfo,
 } from "@/lib/utils/api-organization-filter";
+import { logCreate, logUpdate, logDelete } from "@/lib/business-rules";
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
   // 1. Verificaciones de seguridad
@@ -196,7 +198,22 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     return createErrorResponse(error, "Error al crear empleador");
   }
 
-  // 5. Log de ?xito
+  // 5. Obtener userId para auditoría
+  const userInfo = await getCurrentUserInfo(request, supabase);
+
+  // 6. Registrar auditoría
+  if (userInfo) {
+    try {
+      await logCreate("employer", data.id, userInfo.userId, data, supabase, {
+        organization_id: userInfo.organizationId,
+      });
+    } catch (auditError) {
+      // No fallar la operación por error de auditoría
+      apiLogger.error("Error logging audit for employer creation", auditError);
+    }
+  }
+
+  // 7. Log de éxito
   apiLogger.info("Employer created successfully", {
     employerId: data.id,
     userId: validatedData.user_id,
@@ -260,7 +277,10 @@ export const PATCH = withErrorHandling(async (request: NextRequest) => {
     .eq("id", id)
     .single();
 
-  if (!existingEmployer || existingEmployer.organization_id !== organizationId) {
+  if (
+    !existingEmployer ||
+    existingEmployer.organization_id !== organizationId
+  ) {
     return createErrorResponse(
       { message: "Empleador no encontrado o no pertenece a tu organizaci?n" },
       "Error de autorizaci?n",
@@ -300,7 +320,27 @@ export const PATCH = withErrorHandling(async (request: NextRequest) => {
     return createErrorResponse(error, "Error al actualizar empleador");
   }
 
-  // 6. Log de ?xito
+  // 6. Obtener userId para auditoría
+  const userInfo = await getCurrentUserInfo(request, supabase);
+
+  // 7. Registrar auditoría
+  if (userInfo) {
+    try {
+      await logUpdate(
+        "employer",
+        id,
+        userInfo.userId,
+        existingEmployer,
+        data,
+        supabase,
+        { organization_id: userInfo.organizationId }
+      );
+    } catch (auditError) {
+      apiLogger.error("Error logging audit for employer update", auditError);
+    }
+  }
+
+  // 8. Log de éxito
   apiLogger.info("Employer updated successfully", {
     employerId: id,
     updatedFields: Object.keys(validation.data),
@@ -346,6 +386,22 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
     );
   }
 
+  // 3.2. Obtener datos antes de eliminar para auditoría
+  const { data: deletedData } = await supabase
+    .from("employers")
+    .select("*")
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .single();
+
+  if (!deletedData) {
+    return createErrorResponse(
+      { message: "Empleador no encontrado o no pertenece a tu organizaci?n" },
+      "Error de autorizaci?n",
+      404
+    );
+  }
+
   // 4. Eliminar empleador (solo si pertenece a la organizaci?n)
   const { error } = await supabase
     .from("employers")
@@ -363,7 +419,21 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
     return createErrorResponse(error, "Error al eliminar empleador");
   }
 
-  // 5. Log de ?xito
+  // 6. Obtener userId para auditoría
+  const userInfo = await getCurrentUserInfo(request, supabase);
+
+  // 7. Registrar auditoría
+  if (userInfo) {
+    try {
+      await logDelete("employer", id, userInfo.userId, deletedData, supabase, {
+        organization_id: userInfo.organizationId,
+      });
+    } catch (auditError) {
+      apiLogger.error("Error logging audit for employer delete", auditError);
+    }
+  }
+
+  // 8. Log de éxito
   apiLogger.info("Employer deleted successfully", {
     employerId: id,
   });
@@ -375,4 +445,3 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
     "Empleador eliminado correctamente"
   );
 });
-

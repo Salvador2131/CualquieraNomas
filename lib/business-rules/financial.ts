@@ -151,12 +151,12 @@ export async function validatePayment(
     .from("events")
     .select("presupuesto_total, estado, organization_id")
     .eq("id", eventId);
-  
+
   // Aplicar filtro de organización si se proporciona
   if (organizationId) {
     eventQuery = eventQuery.eq("organization_id", organizationId);
   }
-  
+
   const { data: event, error: eventError } = await eventQuery.single();
 
   if (eventError || !event) {
@@ -214,10 +214,17 @@ export async function validatePayment(
   }
 
   // 8. Verificar pagos previos para no exceder el total
-  const { data: previousPayments } = await supabase
+  let paymentsQuery = supabase
     .from("payments")
     .select("amount")
     .eq("event_id", eventId);
+
+  // Aplicar filtro de organización si se proporciona
+  if (organizationId) {
+    paymentsQuery = paymentsQuery.eq("organization_id", organizationId);
+  }
+
+  const { data: previousPayments } = await paymentsQuery;
 
   const totalPaid =
     previousPayments?.reduce((sum, p) => sum + (p.amount || 0), 0) || 0;

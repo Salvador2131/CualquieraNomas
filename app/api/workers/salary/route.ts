@@ -1,6 +1,16 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
 import { apiLogger } from "@/lib/logger";
+import {
+  validateSalaryEntry,
+  logCreate,
+  logUpdate,
+} from "@/lib/business-rules";
+import {
+  getCurrentOrganizationId,
+  addOrganizationFilter,
+  getCurrentUserInfo,
+} from "@/lib/utils/api-organization-filter";
 
 export async function GET(request: NextRequest) {
   try {
@@ -22,6 +32,15 @@ export async function GET(request: NextRequest) {
 
     const supabase = createClient();
 
+    // Obtener organization_id del usuario autenticado
+    const organizationId = await getCurrentOrganizationId(request, supabase);
+    if (!organizationId) {
+      return NextResponse.json(
+        { message: "No se pudo determinar la organización del usuario" },
+        { status: 401 }
+      );
+    }
+
     let query = supabase
       .from("worker_salaries")
       .select(
@@ -35,6 +54,7 @@ export async function GET(request: NextRequest) {
         )
       `
       )
+      .eq("organization_id", organizationId) // Filtrar por organización
       .order("created_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -68,7 +88,8 @@ export async function GET(request: NextRequest) {
     // Obtener total de registros para paginación - APLICAR MISMOS FILTROS
     let countQuery = supabase
       .from("worker_salaries")
-      .select("*", { count: "exact", head: true });
+      .select("*", { count: "exact", head: true })
+      .eq("organization_id", organizationId); // Filtrar por organización
 
     if (workerId) {
       countQuery = countQuery.eq("worker_id", workerId);
@@ -154,29 +175,35 @@ export async function POST(request: NextRequest) {
 
     const supabase = createClient();
 
-    // Verificar si ya existe un salario para este trabajador en este mes y año
-    const { data: existingSalary } = await supabase
-      .from("worker_salaries")
-      .select("id")
-      .eq("worker_id", worker_id)
-      .eq("month", month)
-      .eq("year", year)
-      .single();
+    // Obtener organization_id del usuario autenticado
+    const organizationId = await getCurrentOrganizationId(request, supabase);
+    if (!organizationId) {
+      return NextResponse.json(
+        { message: "No se pudo determinar la organización del usuario" },
+        { status: 401 }
+      );
+    }
 
-    if (existingSalary) {
-      apiLogger.warn("Duplicate salary attempt", {
+    // Validar entrada de salario usando reglas de negocio
+    const salaryValidation = await validateSalaryEntry(
+      {
         worker_id,
         month,
         year,
-        existing_id: existingSalary.id,
-      });
+        hours_worked: hours_worked || 0,
+        hourly_rate: hourly_rate || 0,
+      },
+      supabase,
+      organizationId
+    );
+
+    if (!salaryValidation.isValid) {
       return NextResponse.json(
         {
-          message:
-            "Ya existe un salario para este trabajador en este mes y año",
-          existing_salary: existingSalary,
+          message: "Errores en la validación del salario",
+          errors: salaryValidation.errors,
         },
-        { status: 409 } // 409 Conflict
+        { status: 400 }
       );
     }
 
@@ -196,6 +223,7 @@ export async function POST(request: NextRequest) {
         total_salary: total_salary || 0,
         status: status || "pending",
         notes,
+        organization_id: organizationId, // Agregar organization_id
       })
       .select(
         `
@@ -221,6 +249,18 @@ export async function POST(request: NextRequest) {
         { message: "Error al crear salario" },
         { status: 500 }
       );
+    }
+
+    // Registrar auditoría
+    const userInfo = await getCurrentUserInfo(request, supabase);
+    if (userInfo) {
+      try {
+        await logCreate("salary", data.id, userInfo.userId, data, supabase, {
+          organization_id: userInfo.organizationId,
+        });
+      } catch (auditError) {
+        apiLogger.error("Error logging audit for salary creation", auditError);
+      }
     }
 
     return NextResponse.json({
@@ -249,6 +289,30 @@ export async function PATCH(request: NextRequest) {
 
     const supabase = createClient();
 
+    // Obtener organization_id y validar pertenencia
+    const organizationId = await getCurrentOrganizationId(request, supabase);
+    if (!organizationId) {
+      return NextResponse.json(
+        { message: "No se pudo determinar la organización del usuario" },
+        { status: 401 }
+      );
+    }
+
+    // Obtener datos anteriores para auditoría
+    const { data: oldData } = await supabase
+      .from("worker_salaries")
+      .select("*")
+      .eq("id", id)
+      .eq("organization_id", organizationId)
+      .single();
+
+    if (!oldData) {
+      return NextResponse.json(
+        { message: "Salario no encontrado o no pertenece a tu organización" },
+        { status: 404 }
+      );
+    }
+
     const { data, error } = await supabase
       .from("worker_salaries")
       .update({
@@ -256,6 +320,7 @@ export async function PATCH(request: NextRequest) {
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
+      .eq("organization_id", organizationId) // Filtrar por organización
       .select(
         `
         *,
@@ -275,6 +340,24 @@ export async function PATCH(request: NextRequest) {
         { message: "Error al actualizar salario" },
         { status: 500 }
       );
+    }
+
+    // Registrar auditoría
+    const userInfo = await getCurrentUserInfo(request, supabase);
+    if (userInfo) {
+      try {
+        await logUpdate(
+          "salary",
+          id,
+          userInfo.userId,
+          oldData,
+          data,
+          supabase,
+          { organization_id: userInfo.organizationId }
+        );
+      } catch (auditError) {
+        apiLogger.error("Error logging audit for salary update", auditError);
+      }
     }
 
     return NextResponse.json({

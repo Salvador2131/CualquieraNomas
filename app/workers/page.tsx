@@ -53,6 +53,8 @@ import {
   Upload,
   FileText,
 } from "lucide-react";
+import { WorkerBadges } from "@/components/worker-badges";
+import Link from "next/link";
 
 interface Worker {
   id: string;
@@ -64,6 +66,8 @@ interface Worker {
   hourly_rate: number;
   skills: string[];
   created_at: string;
+  rating?: number;
+  badges?: string[];
   users?: {
     name: string;
     email: string;
@@ -71,11 +75,15 @@ interface Worker {
 }
 
 export default function WorkersPage() {
+  const { toast } = useToast();
   const [workers, setWorkers] = useState<Worker[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [statusFilter, setStatusFilter] = useState("all");
   const [roleFilter, setRoleFilter] = useState("all");
+  const [minRatingFilter, setMinRatingFilter] = useState("all");
+  const [hasCertifiedFilter, setHasCertifiedFilter] = useState(false);
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
@@ -101,7 +109,7 @@ export default function WorkersPage() {
 
   useEffect(() => {
     fetchWorkers();
-  }, []);
+  }, [debouncedSearchTerm, minRatingFilter, hasCertifiedFilter, roleFilter]);
 
   const handleCreateWorker = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -258,10 +266,19 @@ export default function WorkersPage() {
       }
 
       if (errorCount > 0 && successCount === 0) {
-        setImportError("Error en el archivo");
+        const errorMessage = "Error en el archivo";
+        setImportError(errorMessage);
+        showApiError(toast, errorMessage, "Error al importar trabajadores");
       } else {
         setImportSuccess(true);
         setSelectedFile(null);
+        showSuccess(
+          toast,
+          `Importación completada`,
+          `${successCount} trabajador(es) importado(s)${
+            errorCount > 0 ? `, ${errorCount} error(es)` : ""
+          }`
+        );
         await fetchWorkers();
         setTimeout(() => {
           setIsImportModalOpen(false);
@@ -269,8 +286,9 @@ export default function WorkersPage() {
         }, 2000);
       }
     } catch (error) {
-      // Mostrar solo mensaje genérico sin detalles
-      setImportError("Error en el archivo");
+      const errorMessage = "Error en el archivo";
+      setImportError(errorMessage);
+      showApiError(toast, error, errorMessage);
     } finally {
       setIsImporting(false);
     }
@@ -293,26 +311,71 @@ export default function WorkersPage() {
     try {
       setLoading(true);
 
-      // Limpiar localStorage completamente para evitar conflictos
-      localStorage.removeItem("mockWorkers");
+      // Si hay filtros avanzados, usar búsqueda avanzada
+      const hasAdvancedFilters =
+        minRatingFilter !== "all" || hasCertifiedFilter;
 
-      const response = await fetch("/api/workers?t=" + Date.now()); // Agregar timestamp para evitar cache
-      const data = await response.json();
+      if (hasAdvancedFilters) {
+        // Construir query params para búsqueda avanzada
+        const params = new URLSearchParams();
+        if (searchTerm) params.append("search", searchTerm);
+        if (minRatingFilter !== "all")
+          params.append("minRating", minRatingFilter);
+        if (hasCertifiedFilter) params.append("hasCertified", "true");
+        if (roleFilter !== "all") params.append("specialization", roleFilter);
 
-      console.log("API Response:", data); // Debug log
-
-      if (response.ok && data.success) {
-        // La respuesta tiene estructura: { success: true, data: { workers: [...], pagination: {...} } }
-        const workersData = data.data?.workers || data.workers || [];
-        console.log("Workers from API:", workersData); // Debug log
-        // Usar directamente los trabajadores de la API
-        setWorkers(workersData);
-      } else {
-        console.error(
-          "Error fetching workers:",
-          data.message || "Unknown error"
+        const response = await fetch(
+          `/api/workers/search?${params.toString()}`
         );
-        setWorkers([]);
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          setWorkers(data.workers || []);
+        } else {
+          const errorMessage = data.message || "Error al cargar trabajadores";
+          console.error("Error fetching workers:", errorMessage);
+          setWorkers([]);
+          if (!loading) {
+            showApiError(toast, errorMessage, "Error al cargar trabajadores");
+          }
+        }
+      } else {
+        // Búsqueda normal
+        const response = await fetch(`/api/workers?t=${Date.now()}`);
+        const data = await response.json();
+
+        if (response.ok && data.success) {
+          const workersData = data.data?.workers || data.workers || [];
+          // Obtener badges para cada trabajador
+          const workersWithBadges = await Promise.all(
+            workersData.map(async (worker: any) => {
+              try {
+                const badgesResponse = await fetch(
+                  `/api/workers/${worker.id}/badges`
+                );
+                const badgesData = await badgesResponse.json();
+                return {
+                  ...worker,
+                  rating: worker.rating || 0,
+                  badges: badgesData.success ? badgesData.badges : [],
+                };
+              } catch {
+                return {
+                  ...worker,
+                  rating: worker.rating || 0,
+                  badges: [],
+                };
+              }
+            })
+          );
+          setWorkers(workersWithBadges);
+        } else {
+          console.error(
+            "Error fetching workers:",
+            data.message || "Unknown error"
+          );
+          setWorkers([]);
+        }
       }
     } catch (error) {
       console.error("Error fetching workers:", error);
@@ -324,8 +387,8 @@ export default function WorkersPage() {
 
   const filteredWorkers = workers.filter((worker) => {
     const matchesSearch =
-      worker.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      worker.email.toLowerCase().includes(searchTerm.toLowerCase());
+      worker.name.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      worker.email.toLowerCase().includes(debouncedSearchTerm.toLowerCase());
 
     const matchesStatus =
       statusFilter === "all" || worker.status === statusFilter;
@@ -361,11 +424,30 @@ export default function WorkersPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary mx-auto mb-4"></div>
-          <p>Cargando trabajadores...</p>
+      <div className="space-y-6 p-8">
+        <div className="flex items-center justify-between">
+          <div>
+            <Skeleton className="h-9 w-64 mb-2" />
+            <Skeleton className="h-4 w-96" />
+          </div>
+          <div className="flex gap-2">
+            <Skeleton className="h-10 w-32" />
+            <Skeleton className="h-10 w-40" />
+          </div>
         </div>
+        <Card>
+          <CardHeader>
+            <Skeleton className="h-6 w-48 mb-2" />
+            <Skeleton className="h-4 w-64" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {[...Array(5)].map((_, i) => (
+                <Skeleton key={i} className="h-16 w-full" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }
@@ -688,6 +770,30 @@ export default function WorkersPage() {
                 <SelectItem value="coordinador">Coordinador</SelectItem>
               </SelectContent>
             </Select>
+            <Select value={minRatingFilter} onValueChange={setMinRatingFilter}>
+              <SelectTrigger className="w-full md:w-48">
+                <SelectValue placeholder="Rating mínimo" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Todos los ratings</SelectItem>
+                <SelectItem value="4.5">4.5+ estrellas</SelectItem>
+                <SelectItem value="4.0">4.0+ estrellas</SelectItem>
+                <SelectItem value="3.5">3.5+ estrellas</SelectItem>
+                <SelectItem value="3.0">3.0+ estrellas</SelectItem>
+              </SelectContent>
+            </Select>
+            <div className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                id="certified-filter"
+                checked={hasCertifiedFilter}
+                onChange={(e) => setHasCertifiedFilter(e.target.checked)}
+                className="h-4 w-4 rounded border-gray-300"
+              />
+              <Label htmlFor="certified-filter" className="cursor-pointer">
+                Solo certificados
+              </Label>
+            </div>
           </div>
         </CardContent>
       </Card>
@@ -706,6 +812,7 @@ export default function WorkersPage() {
               <TableRow>
                 <TableHead>Trabajador</TableHead>
                 <TableHead>Rol</TableHead>
+                <TableHead>Rating</TableHead>
                 <TableHead>Estado</TableHead>
                 <TableHead>Experiencia</TableHead>
                 <TableHead>Tarifa</TableHead>
@@ -728,6 +835,25 @@ export default function WorkersPage() {
                     <div className="flex items-center space-x-2">
                       {getRoleIcon(worker.role)}
                       <span className="capitalize">{worker.role}</span>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-col gap-1">
+                      {worker.rating !== undefined && worker.rating > 0 ? (
+                        <div className="flex items-center gap-1">
+                          <Star className="h-4 w-4 fill-yellow-400 text-yellow-400" />
+                          <span className="text-sm font-medium">
+                            {worker.rating.toFixed(1)}/5
+                          </span>
+                        </div>
+                      ) : (
+                        <span className="text-sm text-muted-foreground">
+                          Sin calificaciones
+                        </span>
+                      )}
+                      {worker.badges && worker.badges.length > 0 && (
+                        <WorkerBadges badges={worker.badges} className="mt-1" />
+                      )}
                     </div>
                   </TableCell>
                   <TableCell>{getStatusBadge(worker.status)}</TableCell>
@@ -753,8 +879,10 @@ export default function WorkersPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
-                      <Button variant="ghost" size="sm">
-                        <Eye className="h-4 w-4" />
+                      <Button variant="ghost" size="sm" asChild>
+                        <Link href={`/workers/${worker.id}`}>
+                          <Eye className="h-4 w-4" />
+                        </Link>
                       </Button>
                       <Button variant="ghost" size="sm">
                         <Edit className="h-4 w-4" />

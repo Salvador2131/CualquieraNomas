@@ -1,5 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
+import {
+  getCurrentOrganizationId,
+  getCurrentUserInfo,
+} from "@/lib/utils/api-organization-filter";
+import { logUpdate } from "@/lib/business-rules";
 
 export async function PATCH(
   request: NextRequest,
@@ -24,11 +29,21 @@ export async function PATCH(
 
     const supabase = createClient();
 
+    // Obtener organization_id y validar pertenencia
+    const organizationId = await getCurrentOrganizationId(request, supabase);
+    if (!organizationId) {
+      return NextResponse.json(
+        { message: "No se pudo determinar la organización del usuario" },
+        { status: 401 }
+      );
+    }
+
     // Obtener el preregistro actual para actualizar el historial
     const { data: currentPreregistration, error: fetchError } = await supabase
       .from("preregistrations")
-      .select("historial_comentarios")
+      .select("*")
       .eq("id", id)
+      .eq("organization_id", organizationId) // Filtrar por organización
       .single();
 
     if (fetchError) {
@@ -64,6 +79,7 @@ export async function PATCH(
         updated_at: new Date().toISOString(),
       })
       .eq("id", id)
+      .eq("organization_id", organizationId) // Asegurar que pertenece a la organización
       .select()
       .single();
 
@@ -73,6 +89,27 @@ export async function PATCH(
         { message: "Error al actualizar el preregistro" },
         { status: 500 }
       );
+    }
+
+    // Registrar auditoría
+    const userInfo = await getCurrentUserInfo(request, supabase);
+    if (userInfo) {
+      try {
+        await logUpdate(
+          "preregistration",
+          id,
+          userInfo.userId,
+          currentPreregistration,
+          data,
+          supabase,
+          { organization_id: userInfo.organizationId }
+        );
+      } catch (auditError) {
+        console.error(
+          "Error logging audit for preregistration update:",
+          auditError
+        );
+      }
     }
 
     // TODO: Enviar notificación por email al cliente
@@ -99,6 +136,15 @@ export async function GET(
     const { id } = await params;
     const supabase = createClient();
 
+    // Obtener organization_id y filtrar por organización
+    const organizationId = await getCurrentOrganizationId(request, supabase);
+    if (!organizationId) {
+      return NextResponse.json(
+        { message: "No se pudo determinar la organización del usuario" },
+        { status: 401 }
+      );
+    }
+
     const { data: preregistration, error } = await supabase
       .from("preregistrations")
       .select(
@@ -108,6 +154,7 @@ export async function GET(
       `
       )
       .eq("id", id)
+      .eq("organization_id", organizationId) // Filtrar por organización
       .single();
 
     if (error) {

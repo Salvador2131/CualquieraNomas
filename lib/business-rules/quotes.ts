@@ -75,7 +75,10 @@ export function validateQuoteExpiration(
 /**
  * Marca automáticamente las cotizaciones expiradas
  */
-export async function expireOldQuotes(supabase: SupabaseClient): Promise<{
+export async function expireOldQuotes(
+  supabase: SupabaseClient,
+  organizationId?: string
+): Promise<{
   expiredCount: number;
   errors: string[];
 }> {
@@ -84,11 +87,18 @@ export async function expireOldQuotes(supabase: SupabaseClient): Promise<{
 
   try {
     // Buscar cotizaciones enviadas que han expirado
-    const { data: expiredQuotes, error: findError } = await supabase
+    let quotesQuery = supabase
       .from("quotes")
       .select("id")
       .eq("status", "sent")
       .lt("expiration_date", today);
+
+    // Aplicar filtro de organización si se proporciona
+    if (organizationId) {
+      quotesQuery = quotesQuery.eq("organization_id", organizationId);
+    }
+
+    const { data: expiredQuotes, error: findError } = await quotesQuery;
 
     if (findError) {
       errors.push(
@@ -102,11 +112,18 @@ export async function expireOldQuotes(supabase: SupabaseClient): Promise<{
     }
 
     // Actualizar estado a expirado
-    const { error: updateError } = await supabase
+    let updateQuery = supabase
       .from("quotes")
       .update({ status: "expired" })
       .eq("status", "sent")
       .lt("expiration_date", today);
+
+    // Aplicar filtro de organización si se proporciona
+    if (organizationId) {
+      updateQuery = updateQuery.eq("organization_id", organizationId);
+    }
+
+    const { error: updateError } = await updateQuery;
 
     if (updateError) {
       errors.push(`Error al expirar cotizaciones: ${updateError.message}`);

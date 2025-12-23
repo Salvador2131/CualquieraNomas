@@ -122,23 +122,14 @@ export default function LandingPage() {
             >
               Solicitar Evento
             </Link>
-            <Link
-              href="/auth/login"
-              className="text-sm font-medium hover:text-primary transition-colors"
-            >
-              Acceder
-            </Link>
           </nav>
 
           <div className="flex items-center space-x-2">
+            <Button variant="outline" asChild>
+              <Link href="/auth/login">Iniciar Sesión</Link>
+            </Button>
             <Button asChild>
               <Link href="/preregister">Solicitar Cotización</Link>
-            </Button>
-            <Button variant="outline" asChild>
-              <Link href="/auth/login">
-                <Briefcase className="h-4 w-4 mr-2" />
-                Trabajar con Nosotros
-              </Link>
             </Button>
           </div>
         </div>
@@ -176,6 +167,25 @@ export default function LandingPage() {
                 </Button>
                 <Button size="lg" variant="outline" asChild>
                   <Link href="/gallery">Ver Nuestros Trabajos</Link>
+                </Button>
+              </div>
+
+              {/* Botones de Registro y Acceso */}
+              <div className="flex flex-col sm:flex-row gap-4 pt-4">
+                <Button size="lg" variant="secondary" asChild>
+                  <Link href="/auth/login">Iniciar Sesión</Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link href="/auth/register/worker">
+                    <Briefcase className="h-4 w-4 mr-2" />
+                    Registrarse como Trabajador
+                  </Link>
+                </Button>
+                <Button size="lg" variant="outline" asChild>
+                  <Link href="/auth/register/company">
+                    <Building2 className="h-4 w-4 mr-2" />
+                    Registrarse como Empresa
+                  </Link>
                 </Button>
               </div>
 
@@ -299,6 +309,90 @@ export default function LandingPage() {
                   }`}
                 />
               ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Pre-inscripción Destacada Section */}
+      <section className="py-20 bg-gradient-to-br from-primary/5 via-secondary/5 to-primary/10">
+        <div className="container">
+          <div className="max-w-4xl mx-auto text-center space-y-8">
+            <div className="space-y-4">
+              <Badge variant="secondary" className="w-fit mx-auto">
+                <Star className="w-4 h-4 mr-2" />
+                Descubre las Facilidades del Sistema
+              </Badge>
+              <h2 className="text-3xl lg:text-5xl font-bold">
+                Gestiona Tus Eventos con{" "}
+                <span className="text-primary">Facilidad y Eficiencia</span>
+              </h2>
+              <p className="text-xl lg:text-2xl text-muted-foreground max-w-3xl mx-auto leading-relaxed">
+                Nuestra plataforma ofrece una{" "}
+                <strong className="text-foreground">
+                  amplia gama de posibilidades
+                </strong>{" "}
+                para que puedas gestionar tus eventos de manera profesional.
+                Desde la captación de leads hasta la liquidación de salarios,
+                todo en un solo lugar.{" "}
+                <strong className="text-foreground">
+                  Descubre cómo podemos transformar tu negocio de eventos.
+                </strong>
+              </p>
+            </div>
+
+            <div className="grid md:grid-cols-3 gap-6 pt-8">
+              <Card className="border-2 border-primary/20">
+                <CardHeader>
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                    <Calendar className="h-8 w-8 text-primary" />
+                  </div>
+                  <CardTitle>Gestión Completa</CardTitle>
+                  <CardDescription>
+                    Administra eventos, trabajadores y cotizaciones desde un
+                    solo dashboard
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="border-2 border-primary/20">
+                <CardHeader>
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                    <Users className="h-8 w-8 text-primary" />
+                  </div>
+                  <CardTitle>Equipo Profesional</CardTitle>
+                  <CardDescription>
+                    Conecta con trabajadores calificados y gestiona asignaciones
+                    automáticamente
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+
+              <Card className="border-2 border-primary/20">
+                <CardHeader>
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
+                    <CheckCircle className="h-8 w-8 text-primary" />
+                  </div>
+                  <CardTitle>Automatización Inteligente</CardTitle>
+                  <CardDescription>
+                    Detecta conflictos, valida disponibilidad y calcula
+                    cotizaciones automáticamente
+                  </CardDescription>
+                </CardHeader>
+              </Card>
+            </div>
+
+            <div className="pt-8">
+              <Button size="lg" className="text-lg px-8 py-6" asChild>
+                <Link href="/preregister">
+                  Pre-inscribir Mi Evento Ahora
+                  <ArrowRight className="ml-2 h-5 w-5" />
+                </Link>
+              </Button>
+              <p className="text-sm text-muted-foreground mt-4">
+                Es rápido, fácil y sin compromiso. Te contactaremos en menos de
+                24 horas.
+              </p>
             </div>
           </div>
         </div>

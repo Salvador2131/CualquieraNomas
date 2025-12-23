@@ -42,7 +42,7 @@ export interface TransactionResult<T = any> {
  * Crea un evento con asignaciones de trabajadores en una transacción
  */
 export async function createEventWithAssignments(
-  input: CreateEventWithAssignmentsInput,
+  input: CreateEventWithAssignmentsInput & { organizationId?: string },
   supabase: SupabaseClient
 ): Promise<TransactionResult<{ eventId: string }>> {
   const errors: string[] = [];
@@ -59,6 +59,47 @@ export async function createEventWithAssignments(
       errors.push(...dateValidation.errors);
     }
 
+    // 1.5. Validar límite de eventos para empresas (si es admin)
+    if (input.organizationId) {
+      const { data: user } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", input.userId)
+        .single();
+
+      if (user?.role === "admin") {
+        // Obtener employer
+        const { data: employer } = await supabase
+          .from("employers")
+          .select(
+            "id, subscription_status, events_this_month, events_limit_per_month"
+          )
+          .eq("user_id", input.userId)
+          .eq("organization_id", input.organizationId)
+          .single();
+
+        if (employer) {
+          // Verificar usando función SQL
+          const { data: canCreate, error: canCreateError } = await supabase.rpc(
+            "company_can_create_event",
+            {
+              company_uuid: employer.id,
+            }
+          );
+
+          if (canCreateError || !canCreate) {
+            errors.push(
+              `No puedes crear más eventos este mes. Límite: ${
+                employer.events_limit_per_month || 5
+              } eventos/mes. Eventos creados: ${
+                employer.events_this_month || 0
+              }`
+            );
+          }
+        }
+      }
+    }
+
     // 2. Validar cada trabajador
     for (const workerId of input.workerIds) {
       const availability = await validateWorkerAvailability(
@@ -67,7 +108,8 @@ export async function createEventWithAssignments(
         input.eventData.hora_inicio,
         input.eventData.hora_fin,
         null, // No excluir ningún evento (es creación nueva)
-        supabase
+        supabase,
+        input.organizationId
       );
       if (!availability.isAvailable) {
         errors.push(
@@ -83,12 +125,19 @@ export async function createEventWithAssignments(
     }
 
     // 3. Crear evento
+    const eventInsertData: any = {
+      ...input.eventData,
+      estado: input.eventData.estado || "planificando",
+    };
+
+    // Agregar organization_id si se proporciona
+    if (input.organizationId) {
+      eventInsertData.organization_id = input.organizationId;
+    }
+
     const { data: event, error: eventError } = await supabase
       .from("events")
-      .insert({
-        ...input.eventData,
-        estado: input.eventData.estado || "planificando",
-      })
+      .insert(eventInsertData)
       .select()
       .single();
 
@@ -132,6 +181,44 @@ export async function createEventWithAssignments(
         const assignmentIds = createdAssignments.map((a) => a.id);
         await supabase.from("event_workers").delete().in("id", assignmentIds);
       });
+    }
+
+    // 4.5. Actualizar contador de eventos de la empresa
+    if (input.organizationId) {
+      const { data: user } = await supabase
+        .from("users")
+        .select("role")
+        .eq("id", input.userId)
+        .single();
+
+      if (user?.role === "admin") {
+        const { data: employer } = await supabase
+          .from("employers")
+          .select("id, events_this_month")
+          .eq("user_id", input.userId)
+          .eq("organization_id", input.organizationId)
+          .single();
+
+        if (employer) {
+          await supabase
+            .from("employers")
+            .update({
+              events_this_month: (employer.events_this_month || 0) + 1,
+              updated_at: new Date().toISOString(),
+            })
+            .eq("id", employer.id);
+
+          // Agregar rollback para el contador
+          rollbackActions.push(async () => {
+            await supabase
+              .from("employers")
+              .update({
+                events_this_month: employer.events_this_month || 0,
+              })
+              .eq("id", employer.id);
+          });
+        }
+      }
     }
 
     // 5. Registrar auditoría
@@ -180,7 +267,8 @@ export async function updateEventWithStateValidation(
     [key: string]: any;
   },
   userId: string,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  organizationId?: string
 ): Promise<TransactionResult<{ eventId: string }>> {
   const errors: string[] = [];
 
@@ -198,10 +286,14 @@ export async function updateEventWithStateValidation(
     }
 
     // 2. Actualizar evento
-    const { data: updatedEvent, error: updateError } = await supabase
-      .from("events")
-      .update(updates)
-      .eq("id", eventId)
+    let updateQuery = supabase.from("events").update(updates).eq("id", eventId);
+
+    // Aplicar filtro de organización si se proporciona
+    if (organizationId) {
+      updateQuery = updateQuery.eq("organization_id", organizationId);
+    }
+
+    const { data: updatedEvent, error: updateError } = await updateQuery
       .select()
       .single();
 
@@ -222,7 +314,10 @@ export async function updateEventWithStateValidation(
         userId,
         currentEventData,
         updatedEvent,
-        supabase
+        supabase,
+        {
+          organization_id: organizationId,
+        }
       );
     } catch (auditError) {
       console.error("Error al registrar auditoría:", auditError);

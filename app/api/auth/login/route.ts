@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { createClient } from "@/lib/supabase";
+import { logLogin } from "@/lib/business-rules";
 
 export async function POST(request: NextRequest) {
   try {
@@ -22,6 +23,24 @@ export async function POST(request: NextRequest) {
       });
 
     if (authError) {
+      // Registrar intento de login fallido
+      try {
+        const ipAddress =
+          request.headers.get("x-forwarded-for") ||
+          request.headers.get("x-real-ip") ||
+          "unknown";
+        const userAgent = request.headers.get("user-agent") || "unknown";
+
+        await logLogin("unknown", email, supabase, {
+          success: false,
+          error: authError.message,
+          ip_address: ipAddress,
+          user_agent: userAgent,
+        });
+      } catch (auditError) {
+        // Ignorar errores de auditoría en login fallido
+      }
+
       return NextResponse.json(
         { message: "Error en sistema" },
         { status: 401 }
@@ -57,7 +76,7 @@ export async function POST(request: NextRequest) {
         .select("id, name, slug, plan, status")
         .eq("id", userData.organization_id)
         .single();
-      
+
       organizationData = orgData;
     }
 

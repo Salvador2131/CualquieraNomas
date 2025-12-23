@@ -31,13 +31,14 @@ export async function detectScheduleConflicts(
   eventDate: string,
   eventStartTime: string,
   eventEndTime: string,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  organizationId?: string
 ): Promise<ScheduleConflict[]> {
   const conflicts: ScheduleConflict[] = [];
 
   try {
     // 1. Obtener evento con trabajadores asignados
-    const { data: event, error: eventError } = await supabase
+    let eventQuery = supabase
       .from("events")
       .select(
         `
@@ -55,8 +56,14 @@ export async function detectScheduleConflicts(
         )
       `
       )
-      .eq("id", eventId)
-      .single();
+      .eq("id", eventId);
+
+    // Aplicar filtro de organización si se proporciona
+    if (organizationId) {
+      eventQuery = eventQuery.eq("organization_id", organizationId);
+    }
+
+    const { data: event, error: eventError } = await eventQuery.single();
 
     if (eventError || !event) {
       return conflicts;
@@ -67,7 +74,7 @@ export async function detectScheduleConflicts(
       const workerId = assignment.worker_id;
       const workerName = assignment.workers?.name;
 
-      const { data: otherEvents, error: otherEventsError } = await supabase
+      let otherEventsQuery = supabase
         .from("event_workers")
         .select(
           `
@@ -85,6 +92,17 @@ export async function detectScheduleConflicts(
         .eq("worker_id", workerId)
         .neq("event_id", eventId)
         .in("events.estado", ["planificando", "confirmado", "en_progreso"]);
+
+      // Aplicar filtro de organización si se proporciona
+      if (organizationId) {
+        otherEventsQuery = otherEventsQuery.eq(
+          "events.organization_id",
+          organizationId
+        );
+      }
+
+      const { data: otherEvents, error: otherEventsError } =
+        await otherEventsQuery;
 
       if (otherEventsError) {
         continue;
@@ -188,7 +206,8 @@ export async function detectWorkerConflict(
   eventStartTime: string,
   eventEndTime: string,
   excludeEventId: string | null,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  organizationId?: string
 ): Promise<ScheduleConflict[]> {
   const conflicts: ScheduleConflict[] = [];
 
@@ -219,6 +238,11 @@ export async function detectWorkerConflict(
 
     if (excludeEventId) {
       query = query.neq("event_id", excludeEventId);
+    }
+
+    // Aplicar filtro de organización si se proporciona
+    if (organizationId) {
+      query = query.eq("events.organization_id", organizationId);
     }
 
     const { data: assignments, error } = await query;
@@ -286,17 +310,24 @@ export function canAutoResolveConflict(
  */
 export async function getEventConflictsSummary(
   eventId: string,
-  supabase: SupabaseClient
+  supabase: SupabaseClient,
+  organizationId?: string
 ): Promise<{
   totalConflicts: number;
   conflicts: ScheduleConflict[];
   canAutoResolve: boolean;
 }> {
-  const { data: event } = await supabase
+  let eventQuery = supabase
     .from("events")
     .select("id, fecha_evento, hora_inicio, hora_fin")
-    .eq("id", eventId)
-    .single();
+    .eq("id", eventId);
+
+  // Aplicar filtro de organización si se proporciona
+  if (organizationId) {
+    eventQuery = eventQuery.eq("organization_id", organizationId);
+  }
+
+  const { data: event } = await eventQuery.single();
 
   if (!event) {
     return {
@@ -311,7 +342,8 @@ export async function getEventConflictsSummary(
     event.fecha_evento,
     event.hora_inicio,
     event.hora_fin,
-    supabase
+    supabase,
+    organizationId
   );
 
   const canAutoResolve = conflicts.every((conflict) =>

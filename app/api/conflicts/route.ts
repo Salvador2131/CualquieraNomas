@@ -3,7 +3,13 @@ import { createClient } from "@/lib/supabase";
 import {
   getCurrentOrganizationId,
   addOrganizationFilter,
+  getCurrentUserInfo,
 } from "@/lib/utils/api-organization-filter";
+import {
+  detectScheduleConflicts,
+  logCreate,
+  logUpdate,
+} from "@/lib/business-rules";
 
 export async function GET(request: NextRequest) {
   try {
@@ -28,7 +34,8 @@ export async function GET(request: NextRequest) {
 
     let query = supabase
       .from("conflicts")
-      .select(`
+      .select(
+        `
         *,
         workers:worker_id (
           id,
@@ -42,7 +49,8 @@ export async function GET(request: NextRequest) {
           hora_inicio,
           hora_fin
         )
-      `)
+      `
+      )
       .order("detected_at", { ascending: false })
       .range(offset, offset + limit - 1);
 
@@ -71,10 +79,12 @@ export async function GET(request: NextRequest) {
       );
     }
 
-    // Obtener total de registros para paginación
-    const { count } = await supabase
+    // Obtener total de registros para paginación (con filtro de organización)
+    let countQuery = supabase
       .from("conflicts")
       .select("*", { count: "exact", head: true });
+    countQuery = addOrganizationFilter(countQuery, organizationId);
+    const { count } = await countQuery;
 
     return NextResponse.json({
       conflicts,
@@ -112,7 +122,10 @@ export async function POST(request: NextRequest) {
     // Validar campos requeridos
     if (!conflict_type || !worker_id || !event_id || !severity) {
       return NextResponse.json(
-        { message: "conflict_type, worker_id, event_id y severity son requeridos" },
+        {
+          message:
+            "conflict_type, worker_id, event_id y severity son requeridos",
+        },
         { status: 400 }
       );
     }
@@ -166,6 +179,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Registrar auditoría
+    const userInfo = await getCurrentUserInfo(request, supabase);
+    if (userInfo) {
+      try {
+        await logCreate("conflict", data.id, userInfo.userId, data, supabase, {
+          organization_id: userInfo.organizationId,
+        });
+      } catch (auditError) {
+        console.error("Error logging audit for conflict creation:", auditError);
+      }
+    }
+
     return NextResponse.json({
       message: "Conflicto creado exitosamente",
       conflict: data,
@@ -209,7 +234,10 @@ export async function PATCH(request: NextRequest) {
       .eq("id", id)
       .single();
 
-    if (!existingConflict || existingConflict.organization_id !== organizationId) {
+    if (
+      !existingConflict ||
+      existingConflict.organization_id !== organizationId
+    ) {
       return NextResponse.json(
         { message: "Conflicto no encontrado o no pertenece a tu organización" },
         { status: 403 }
@@ -261,6 +289,24 @@ export async function PATCH(request: NextRequest) {
       },
     });
 
+    // Registrar auditoría
+    const userInfo = await getCurrentUserInfo(request, supabase);
+    if (userInfo && existingConflict) {
+      try {
+        await logUpdate(
+          "conflict",
+          id,
+          userInfo.userId,
+          existingConflict,
+          data,
+          supabase,
+          { organization_id: userInfo.organizationId }
+        );
+      } catch (auditError) {
+        console.error("Error logging audit for conflict update:", auditError);
+      }
+    }
+
     return NextResponse.json({
       message: "Conflicto actualizado exitosamente",
       conflict: data,
@@ -279,13 +325,79 @@ export async function PUT(request: NextRequest) {
   try {
     const supabase = createClient();
 
-    // Ejecutar función de detección de conflictos
-    const { error } = await supabase.rpc("detect_schedule_conflicts");
+    // Obtener organization_id del usuario autenticado
+    const organizationId = await getCurrentOrganizationId(request, supabase);
+    if (!organizationId) {
+      return NextResponse.json(
+        { message: "No se pudo determinar la organización del usuario" },
+        { status: 401 }
+      );
+    }
+
+    // Obtener parámetros opcionales
+    const { searchParams } = new URL(request.url);
+    const eventId = searchParams.get("eventId");
+    const eventDate = searchParams.get("eventDate");
+    const eventStartTime = searchParams.get("eventStartTime");
+    const eventEndTime = searchParams.get("eventEndTime");
+
+    // Si se proporcionan parámetros específicos, detectar conflictos para ese evento
+    if (eventId && eventDate && eventStartTime && eventEndTime) {
+      const conflicts = await detectScheduleConflicts(
+        eventId,
+        eventDate,
+        eventStartTime,
+        eventEndTime,
+        supabase,
+        organizationId
+      );
+
+      // Crear registros de conflictos detectados
+      if (conflicts.length > 0) {
+        const conflictInserts = conflicts.map((conflict) => ({
+          conflict_type: "schedule_overlap",
+          worker_id: conflict.workerId,
+          event_id: conflict.conflictingEventId,
+          severity: "high",
+          status: "detected",
+          conflict_details: {
+            message: `Trabajador ${conflict.workerName} tiene conflicto de horario`,
+            conflicting_event: conflict.conflictingEventTitle,
+            conflicting_date: conflict.conflictingEventDate,
+            conflicting_time: `${conflict.conflictingEventStart}-${conflict.conflictingEventEnd}`,
+            new_event_time: `${conflict.newEventStart}-${conflict.newEventEnd}`,
+          },
+          organization_id: organizationId,
+        }));
+
+        const { error: insertError } = await supabase
+          .from("conflicts")
+          .insert(conflictInserts);
+
+        if (insertError) {
+          console.error("Error creating conflict records:", insertError);
+        }
+      }
+
+      return NextResponse.json({
+        message: "Detección de conflictos ejecutada exitosamente",
+        conflictsDetected: conflicts.length,
+        conflicts,
+      });
+    }
+
+    // Si no se proporcionan parámetros, intentar usar función RPC (si existe)
+    const { error } = await supabase.rpc("detect_schedule_conflicts", {
+      org_id: organizationId,
+    });
 
     if (error) {
       console.error("Error detecting conflicts:", error);
       return NextResponse.json(
-        { message: "Error al detectar conflictos" },
+        {
+          message:
+            "Error al detectar conflictos. Proporciona eventId, eventDate, eventStartTime y eventEndTime para detección específica.",
+        },
         { status: 500 }
       );
     }

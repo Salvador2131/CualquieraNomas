@@ -18,7 +18,9 @@ import { apiLogger } from "@/lib/logger";
 import { createClient } from "@/lib/supabase";
 import {
   getCurrentOrganizationId,
+  getCurrentUserInfo,
 } from "@/lib/utils/api-organization-filter";
+import { logCreate } from "@/lib/business-rules";
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
   // 1. Verificaciones de seguridad
@@ -111,9 +113,14 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
 
   const validatedData = validation.data;
 
-  // 3. Crear notificación
+  // 3. Obtener organization_id para la notificación
+  const supabase = createClient();
+  const organizationId = await getCurrentOrganizationId(request, supabase);
+
+  // 4. Crear notificación
   try {
     const notification = await notificationService.createNotification({
+      organization_id: organizationId || undefined, // Agregar organization_id
       destinatario_id: validatedData.user_id,
       destinatario_tipo: "user",
       destinatario_email: null,
@@ -132,7 +139,28 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
       );
     }
 
-    // 4. Log de éxito
+    // 4. Registrar auditoría
+    const supabase = createClient();
+    const userInfo = await getCurrentUserInfo(request, supabase);
+    if (userInfo) {
+      try {
+        await logCreate(
+          "notification",
+          notification.id,
+          userInfo.userId,
+          notification,
+          supabase,
+          { organization_id: userInfo.organizationId }
+        );
+      } catch (auditError) {
+        apiLogger.error(
+          "Error logging audit for notification creation",
+          auditError
+        );
+      }
+    }
+
+    // 5. Log de éxito
     apiLogger.info("Notification created successfully", {
       notificationId: notification.id,
       userId: validatedData.user_id,

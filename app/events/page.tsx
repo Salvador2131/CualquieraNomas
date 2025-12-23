@@ -42,6 +42,9 @@ import {
   Filter,
   Loader2,
   AlertCircle,
+  MessageSquare,
+  Star,
+  AlertTriangle,
 } from "lucide-react";
 import {
   Dialog,
@@ -52,6 +55,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Textarea } from "@/components/ui/textarea";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Pagination } from "@/components/pagination";
+import { useToast } from "@/hooks/use-toast";
+import { showApiError, showSuccess } from "@/lib/utils/toast-helpers";
+import { useDebounce } from "@/lib/hooks/use-debounce";
 
 interface Event {
   id: string;
@@ -97,17 +105,23 @@ const estados = [
 ];
 
 export default function EventsPage() {
+  const { toast } = useToast();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
   const [estado, setEstado] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
+  const debouncedSearchTerm = useDebounce(searchTerm, 500);
   const [error, setError] = useState("");
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState("");
   const [submitSuccess, setSubmitSuccess] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+  const itemsPerPage = 10;
 
   // Form state
   const [formData, setFormData] = useState({
@@ -125,11 +139,13 @@ export default function EventsPage() {
     presupuesto_total: "",
   });
 
-  const fetchEvents = async () => {
+  const fetchEvents = async (page: number = currentPage) => {
     try {
       setError(""); // Limpiar error anterior
       const params = new URLSearchParams();
       if (estado && estado !== "all") params.append("estado", estado);
+      params.append("page", page.toString());
+      params.append("limit", itemsPerPage.toString());
 
       const response = await fetch(
         `/api/events?${params.toString()}&t=${Date.now()}`
@@ -148,8 +164,14 @@ export default function EventsPage() {
       }
     } catch (err) {
       console.error("Error fetching events:", err);
-      setError(err instanceof Error ? err.message : "Error desconocido");
-      setEvents([]); // Establecer array vacío en caso de error
+      const errorMessage =
+        err instanceof Error ? err.message : "Error desconocido";
+      setError(errorMessage);
+      setEvents([]);
+      if (!loading) {
+        // Solo mostrar toast si no es la carga inicial
+        showApiError(toast, err, "Error al cargar los eventos");
+      }
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -159,6 +181,7 @@ export default function EventsPage() {
   const handleRefresh = async () => {
     setRefreshing(true);
     await fetchEvents();
+    showSuccess(toast, "Lista actualizada");
   };
 
   const handleCreateEvent = async (e: React.FormEvent) => {
@@ -200,10 +223,19 @@ export default function EventsPage() {
 
       if (response.ok && data.success) {
         setSubmitSuccess(true);
-        // Add new event to the list immediately
-        if (data.data?.event) {
+        showSuccess(toast, "Evento creado exitosamente");
+
+        // Add new event to the list immediately (optimistic update)
+        if (data.data?.eventId) {
+          // Refetch para obtener el evento completo con todos los datos
+          fetchEvents();
+        } else if (data.data?.event) {
           setEvents((prevEvents) => [data.data.event, ...prevEvents]);
+        } else {
+          // Si no viene el evento, refrescar la lista
+          fetchEvents();
         }
+
         // Reset form
         setFormData({
           titulo: "",
@@ -219,19 +251,23 @@ export default function EventsPage() {
           cliente_telefono: "",
           presupuesto_total: "",
         });
-        // Close modal after 1.5 seconds
+
+        // Close modal after 1 second
         setTimeout(() => {
           setIsCreateModalOpen(false);
           setSubmitSuccess(false);
-        }, 1500);
+        }, 1000);
       } else {
-        setSubmitError(data.message || "Error al crear el evento");
+        const errorMessage = data.message || "Error al crear el evento";
+        setSubmitError(errorMessage);
+        showApiError(toast, errorMessage, "Error al crear el evento");
       }
     } catch (error) {
       console.error("Error creating event:", error);
-      setSubmitError(
-        "Error al crear el evento. Por favor, inténtalo de nuevo."
-      );
+      const errorMessage =
+        "Error al crear el evento. Por favor, inténtalo de nuevo.";
+      setSubmitError(errorMessage);
+      showApiError(toast, error, errorMessage);
     } finally {
       setIsSubmitting(false);
     }
@@ -239,14 +275,28 @@ export default function EventsPage() {
 
   const filteredEvents = events.filter(
     (event) =>
-      event.titulo.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.cliente_nombre.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      event.tipo_evento.toLowerCase().includes(searchTerm.toLowerCase())
+      event.titulo.toLowerCase().includes(debouncedSearchTerm.toLowerCase()) ||
+      event.cliente_nombre
+        .toLowerCase()
+        .includes(debouncedSearchTerm.toLowerCase()) ||
+      event.tipo_evento
+        .toLowerCase()
+        .includes(debouncedSearchTerm.toLowerCase())
   );
 
   useEffect(() => {
     fetchEvents();
   }, [estado]);
+
+  // Refetch cuando cambia el término de búsqueda debounced
+  useEffect(() => {
+    if (debouncedSearchTerm !== searchTerm) {
+      // El debounce está activo, no hacer nada aún
+      return;
+    }
+    // Si el término de búsqueda cambió y ya está debounced, podríamos refetch
+    // Pero por ahora solo filtramos en el cliente
+  }, [debouncedSearchTerm, searchTerm]);
 
   if (loading) {
     return (
@@ -479,6 +529,17 @@ export default function EventsPage() {
                 ))}
               </TableBody>
             </Table>
+            {totalPages > 1 && (
+              <div className="mt-4">
+                <Pagination
+                  currentPage={currentPage}
+                  totalPages={totalPages}
+                  onPageChange={handlePageChange}
+                  totalItems={totalItems}
+                  itemsPerPage={itemsPerPage}
+                />
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -586,18 +647,37 @@ export default function EventsPage() {
                 <div className="space-y-2">
                   <h4 className="font-semibold">Acciones</h4>
                   <div className="flex flex-wrap gap-2">
-                    <Button size="sm">
-                      <Eye className="h-4 w-4 mr-2" />
-                      Ver Checklist
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={`/events/${selectedEvent.id}/assign-workers`}>
+                        <Users className="h-4 w-4 mr-2" />
+                        Asignar Trabajadores
+                      </a>
                     </Button>
-                    <Button size="sm" variant="outline">
-                      <Users className="h-4 w-4 mr-2" />
-                      Asignar Personal
+                    <Button size="sm" variant="outline" asChild>
+                      <a href={`/events/${selectedEvent.id}/applications`}>
+                        <Users className="h-4 w-4 mr-2" />
+                        Ver Postulaciones
+                      </a>
                     </Button>
-                    <Button size="sm" variant="outline">
-                      <Calendar className="h-4 w-4 mr-2" />
-                      Editar Evento
-                    </Button>
+                    {(selectedEvent.estado === "completado" ||
+                      selectedEvent.estado === "en_progreso") && (
+                      <>
+                        <Button size="sm" variant="outline" asChild>
+                          <a href={`/events/${selectedEvent.id}/rate`}>
+                            <Star className="h-4 w-4 mr-2" />
+                            Calificar Trabajadores
+                          </a>
+                        </Button>
+                        <Button size="sm" variant="destructive" asChild>
+                          <a
+                            href={`/events/${selectedEvent.id}/report-incident`}
+                          >
+                            <AlertTriangle className="h-4 w-4 mr-2" />
+                            Reportar Incidencia
+                          </a>
+                        </Button>
+                      </>
+                    )}
                   </div>
                 </div>
               </div>

@@ -27,21 +27,39 @@ class NotificationService {
   private supabase = createClient();
 
   /**
-   * Crear una nueva notificación
+   * Crear una nueva notificación y enviar email automáticamente
    */
   async createNotification(data: NotificationData) {
     try {
       // Obtener organization_id si no se proporciona
       let organizationId = data.organization_id;
+      let userEmail: string | null = data.destinatario_email || null;
+
       if (!organizationId && data.destinatario_id) {
         const { data: user } = await this.supabase
           .from("users")
-          .select("organization_id")
+          .select("organization_id, email")
           .eq("id", data.destinatario_id)
           .single();
-        organizationId = user?.organization_id || '00000000-0000-0000-0000-000000000001';
+        organizationId =
+          user?.organization_id || "00000000-0000-0000-0000-000000000001";
+        if (!userEmail && user?.email) {
+          userEmail = user.email;
+        }
       } else if (!organizationId) {
-        organizationId = '00000000-0000-0000-0000-000000000001';
+        organizationId = "00000000-0000-0000-0000-000000000001";
+      }
+
+      // Si tenemos destinatario_id pero no email, obtenerlo
+      if (!userEmail && data.destinatario_id) {
+        const { data: user } = await this.supabase
+          .from("users")
+          .select("email")
+          .eq("id", data.destinatario_id)
+          .single();
+        if (user?.email) {
+          userEmail = user.email;
+        }
       }
 
       const { data: notification, error } = await this.supabase
@@ -50,14 +68,14 @@ class NotificationService {
           {
             destinatario_id: data.destinatario_id,
             destinatario_tipo: data.destinatario_tipo,
-            destinatario_email: data.destinatario_email,
+            destinatario_email: userEmail || data.destinatario_email,
             titulo: data.titulo,
             mensaje: data.mensaje,
             tipo: data.tipo,
             evento_id: data.evento_id,
             preregistro_id: data.preregistro_id,
             datos_adicionales: data.datos_adicionales,
-            organization_id: organizationId, // Agregar organization_id
+            organization_id: organizationId,
           },
         ])
         .select()
@@ -66,6 +84,44 @@ class NotificationService {
       if (error) {
         console.error("Error creating notification:", error);
         return null;
+      }
+
+      // Enviar email automáticamente si tenemos email
+      if (userEmail || data.destinatario_email) {
+        try {
+          await emailService.sendEmail({
+            to: userEmail || data.destinatario_email!,
+            subject: data.titulo,
+            html: `
+              <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
+                <h2 style="color: #333;">${data.titulo}</h2>
+                <p style="color: #666; line-height: 1.6;">${data.mensaje}</p>
+                ${
+                  data.evento_id
+                    ? `<p style="margin-top: 20px;"><a href="${
+                        process.env.NEXT_PUBLIC_APP_URL ||
+                        "http://localhost:3000"
+                      }/events/${
+                        data.evento_id
+                      }" style="color: #007bff; text-decoration: none;">Ver evento</a></p>`
+                    : ""
+                }
+                <hr style="border: none; border-top: 1px solid #eee; margin: 20px 0;">
+                <p style="color: #999; font-size: 12px;">Este es un email automático del sistema ERP Banquetes. Por favor no respondas a este correo.</p>
+              </div>
+            `,
+            text: `${data.titulo}\n\n${data.mensaje}${
+              data.evento_id
+                ? `\n\nVer evento: ${
+                    process.env.NEXT_PUBLIC_APP_URL || "http://localhost:3000"
+                  }/events/${data.evento_id}`
+                : ""
+            }`,
+          });
+        } catch (emailError) {
+          console.error("Error sending notification email:", emailError);
+          // No fallar la creación de notificación si el email falla
+        }
       }
 
       return notification;
@@ -208,7 +264,8 @@ class NotificationService {
       }
 
       // Obtener organization_id del evento
-      const organizationId = evento.organization_id || '00000000-0000-0000-0000-000000000001';
+      const organizationId =
+        evento.organization_id || "00000000-0000-0000-0000-000000000001";
 
       // Crear notificaciones para cada trabajador (con organization_id)
       const notifications = workerIds.map((workerId) => ({
@@ -275,7 +332,10 @@ class NotificationService {
       }
 
       // Obtener organization_id del preregistro o evento
-      const organizationId = preregistro.organization_id || evento.organization_id || '00000000-0000-0000-0000-000000000001';
+      const organizationId =
+        preregistro.organization_id ||
+        evento.organization_id ||
+        "00000000-0000-0000-0000-000000000001";
 
       // Crear notificación para el cliente (con organization_id)
       const notification = await this.createNotification({
@@ -321,7 +381,8 @@ class NotificationService {
       }
 
       // Obtener organization_id del preregistro
-      const organizationId = preregistro.organization_id || '00000000-0000-0000-0000-000000000001';
+      const organizationId =
+        preregistro.organization_id || "00000000-0000-0000-0000-000000000001";
 
       // Obtener administradores de la misma organización
       const { data: admins, error: adminsError } = await this.supabase

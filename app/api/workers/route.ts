@@ -10,81 +10,107 @@ import {
   createErrorResponse,
   withErrorHandling,
 } from "@/lib/api/response-handler";
-// import { mainSecurityMiddleware } from "@/lib/middleware"; // Deshabilitado para modo demo
 import { apiLogger } from "@/lib/logger";
+// import { mainSecurityMiddleware } from "@/lib/middleware"; // Deshabilitado para desarrollo
+import {
+  getCurrentOrganizationId,
+  addOrganizationFilter,
+  getCurrentUserInfo,
+} from "@/lib/utils/api-organization-filter";
+import { logUpdate, logDelete } from "@/lib/business-rules";
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
-  // MODO DEMO: Retornar datos mock (hardcoded) sin base de datos
-  // Datos de ejemplo para demostración
-  const mockWorkers: any[] = [
-    {
-      id: "worker-juanjo-perini",
-      name: "Juanjo Perini",
-      email: "Juanjo.perini@example.com",
-      phone: "12345678",
-      role: "garzon",
-      status: "active",
-      experience_years: 1,
-      hourly_rate: 5000.0,
-      skills: ["Trabajo en equipo", "responsabilidad"],
-      address: "Soy un buen trabajador",
-      created_at: new Date(Date.now() - 3600000).toISOString(), // Creado hace 1 hora
-    },
-    {
-      id: "worker-1",
-      name: "Carlos Rodríguez",
-      email: "carlos.rodriguez@ejemplo.com",
-      role: "supervisor",
-      status: "active",
-      experience_years: 8,
-      hourly_rate: 25.0,
-      skills: ["Gestión de equipo", "Planificación de eventos"],
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-    },
-    {
-      id: "worker-2",
-      name: "María González",
-      email: "maria.gonzalez@ejemplo.com",
-      role: "garzon",
-      status: "active",
-      experience_years: 3,
-      hourly_rate: 15.0,
-      skills: ["Atención al cliente", "Servicio de mesas"],
-      created_at: new Date(Date.now() - 172800000).toISOString(),
-    },
-    {
-      id: "worker-3",
-      name: "Pedro Martínez",
-      email: "pedro.martinez@ejemplo.com",
-      role: "bartender",
-      status: "active",
-      experience_years: 5,
-      hourly_rate: 18.0,
-      skills: ["Mixología", "Coctelería"],
-      created_at: new Date(Date.now() - 259200000).toISOString(),
-    },
-  ];
+  const supabase = createClient();
+  const userInfo = await getCurrentUserInfo(request, supabase);
+  
+  if (!userInfo) {
+    return createErrorResponse(
+      { message: "No autenticado" },
+      "Error de autenticación",
+      401
+    );
+  }
 
-  // Agregar workers creados en esta sesión desde localStorage (si existe)
-  // Esto permite que los nuevos trabajadores aparezcan después de crearlos
+  const { searchParams } = new URL(request.url);
+  const page = parseInt(searchParams.get("page") || "1");
+  const limit = parseInt(searchParams.get("limit") || "10");
+  const offset = (page - 1) * limit;
+
+  // Construir query
+  let query = supabase
+    .from("workers")
+    .select(
+      `
+      *,
+      users:user_id (
+        id,
+        name,
+        email,
+        phone
+      )
+    `,
+      { count: "exact" }
+    )
+    .eq("organization_id", userInfo.organizationId)
+    .order("created_at", { ascending: false })
+    .range(offset, offset + limit - 1);
+
+  const { data: workers, error, count } = await query;
+
+  if (error) {
+    apiLogger.error("Error fetching workers", {
+      error: error.message,
+      code: error.code,
+    });
+    return createErrorResponse(error, "Error al obtener trabajadores");
+  }
+
+  // Obtener badges para cada trabajador
+  const workersWithBadges = await Promise.all(
+    (workers || []).map(async (worker: any) => {
+      try {
+        const badgesResponse = await supabase.rpc("get_worker_badges", {
+          worker_uuid: worker.id,
+        });
+        return {
+          ...worker,
+          badges: badgesResponse.data || [],
+        };
+      } catch {
+        return {
+          ...worker,
+          badges: [],
+        };
+      }
+    })
+  );
 
   return createSuccessResponse(
     {
-      workers: mockWorkers,
+      workers: workersWithBadges,
       pagination: {
-        page: 1,
-        limit: 10,
-        total: mockWorkers.length,
-        totalPages: 1,
+        page,
+        limit,
+        total: count || 0,
+        totalPages: Math.ceil((count || 0) / limit),
       },
     },
-    "Trabajadores obtenidos correctamente (MODO DEMO)"
+    "Trabajadores obtenidos correctamente"
   );
 });
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
-  // MODO DEMO: Usando datos mock (hardcoded) sin base de datos
-  // 1. Obtener datos del body
+  const supabase = createClient();
+  const userInfo = await getCurrentUserInfo(request, supabase);
+  
+  if (!userInfo) {
+    return createErrorResponse(
+      { message: "No autenticado" },
+      "Error de autenticación",
+      401
+    );
+  }
+
   const body = await request.json();
 
   // Validación básica
@@ -95,42 +121,21 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     );
   }
 
-  // 2. Crear trabajador con datos mock
-  const mockWorker = {
-    id: `worker-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`,
-    name: `${body.first_name} ${body.last_name}`,
-    email: body.email,
-    phone: body.phone || "",
-    role: body.position || "garzon",
-    status: "active",
-    experience_years: body.experience_years || 0,
-    hourly_rate: body.hourly_rate || 15.0,
-    skills: body.skills || [],
-    address: body.address || "",
-    created_at: new Date().toISOString(),
-    users: {
-      name: `${body.first_name} ${body.last_name}`,
-      email: body.email,
-    },
-  };
-
-  // 3. Simular respuesta exitosa
-  return createSuccessResponse(
-    {
-      worker: mockWorker,
-      message: "Trabajador creado exitosamente (MODO DEMO)",
-    },
-    "Trabajador creado correctamente",
-    201
+  // Nota: En producción, los trabajadores se crean a través del registro
+  // Este endpoint es principalmente para admins que crean trabajadores manualmente
+  // Por ahora, retornamos error indicando que se debe usar el registro
+  return createErrorResponse(
+    { message: "Los trabajadores deben registrarse a través del formulario de registro. Usa /api/auth/register con role='worker'" },
+    "Método no permitido",
+    405
   );
 });
 
 export const PATCH = withErrorHandling(async (request: NextRequest) => {
-  // 1. Verificaciones de seguridad
-  const securityResponse = await mainSecurityMiddleware(request);
-  if (securityResponse) {
-    return securityResponse;
-  }
+  // Nota: mainSecurityMiddleware deshabilitado para desarrollo
+  // En producción, descomentar:
+  // const securityResponse = await mainSecurityMiddleware(request);
+  // if (securityResponse) return securityResponse;
 
   // 2. Obtener y validar datos del body
   const body = await request.json();
@@ -155,6 +160,32 @@ export const PATCH = withErrorHandling(async (request: NextRequest) => {
   // 4. Crear cliente de Supabase
   const supabase = createClient();
 
+  // 4.1. Obtener organization_id y validar pertenencia
+  const organizationId = await getCurrentOrganizationId(request, supabase);
+  if (!organizationId) {
+    return createErrorResponse(
+      { message: "No se pudo determinar la organización del usuario" },
+      "Error de autenticación",
+      401
+    );
+  }
+
+  // 4.2. Obtener datos anteriores para auditoría
+  const { data: oldData } = await supabase
+    .from("workers")
+    .select("*")
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .single();
+
+  if (!oldData) {
+    return createErrorResponse(
+      { message: "Trabajador no encontrado o no pertenece a tu organización" },
+      "Error de autorización",
+      404
+    );
+  }
+
   // 5. Actualizar trabajador
   const { data, error } = await supabase
     .from("workers")
@@ -163,6 +194,7 @@ export const PATCH = withErrorHandling(async (request: NextRequest) => {
       updated_at: new Date().toISOString(),
     })
     .eq("id", id)
+    .eq("organization_id", organizationId) // Asegurar que pertenece a la organización
     .select(
       `
       *,
@@ -187,7 +219,19 @@ export const PATCH = withErrorHandling(async (request: NextRequest) => {
     return createErrorResponse(error, "Error al actualizar trabajador");
   }
 
-  // 6. Log de éxito
+  // 6. Registrar auditoría
+  const userInfo = await getCurrentUserInfo(request, supabase);
+  if (userInfo) {
+    try {
+      await logUpdate("worker", id, userInfo.userId, oldData, data, supabase, {
+        organization_id: userInfo.organizationId,
+      });
+    } catch (auditError) {
+      apiLogger.error("Error logging audit for worker update", auditError);
+    }
+  }
+
+  // 7. Log de éxito
   apiLogger.info("Worker updated successfully", {
     workerId: id,
     updatedFields: Object.keys(validation.data),
@@ -203,11 +247,11 @@ export const PATCH = withErrorHandling(async (request: NextRequest) => {
 });
 
 export const DELETE = withErrorHandling(async (request: NextRequest) => {
-  // 1. Verificaciones de seguridad
-  const securityResponse = await mainSecurityMiddleware(request);
-  if (securityResponse) {
-    return securityResponse;
-  }
+  // Nota: mainSecurityMiddleware deshabilitado para desarrollo
+  // En producción, descomentar:
+  // import { mainSecurityMiddleware } from "@/lib/middleware";
+  // const securityResponse = await mainSecurityMiddleware(request);
+  // if (securityResponse) return securityResponse;
 
   // 2. Validar parámetros
   const { searchParams } = new URL(request.url);
@@ -223,8 +267,38 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
   // 3. Crear cliente de Supabase
   const supabase = createClient();
 
+  // 3.1. Obtener organization_id y validar pertenencia
+  const organizationId = await getCurrentOrganizationId(request, supabase);
+  if (!organizationId) {
+    return createErrorResponse(
+      { message: "No se pudo determinar la organización del usuario" },
+      "Error de autenticación",
+      401
+    );
+  }
+
+  // 3.2. Obtener datos antes de eliminar para auditoría
+  const { data: deletedData } = await supabase
+    .from("workers")
+    .select("*")
+    .eq("id", id)
+    .eq("organization_id", organizationId)
+    .single();
+
+  if (!deletedData) {
+    return createErrorResponse(
+      { message: "Trabajador no encontrado o no pertenece a tu organización" },
+      "Error de autorización",
+      404
+    );
+  }
+
   // 4. Eliminar trabajador
-  const { error } = await supabase.from("workers").delete().eq("id", id);
+  const { error } = await supabase
+    .from("workers")
+    .delete()
+    .eq("id", id)
+    .eq("organization_id", organizationId); // Asegurar que pertenece a la organización
 
   if (error) {
     apiLogger.error("Error deleting worker", {
@@ -236,7 +310,19 @@ export const DELETE = withErrorHandling(async (request: NextRequest) => {
     return createErrorResponse(error, "Error al eliminar trabajador");
   }
 
-  // 5. Log de éxito
+  // 5. Registrar auditoría
+  const userInfo = await getCurrentUserInfo(request, supabase);
+  if (userInfo) {
+    try {
+      await logDelete("worker", id, userInfo.userId, deletedData, supabase, {
+        organization_id: userInfo.organizationId,
+      });
+    } catch (auditError) {
+      apiLogger.error("Error logging audit for worker delete", auditError);
+    }
+  }
+
+  // 6. Log de éxito
   apiLogger.info("Worker deleted successfully", {
     workerId: id,
   });

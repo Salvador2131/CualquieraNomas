@@ -139,3 +139,58 @@ export async function validateUserOrganization(
     return false;
   }
 }
+
+/**
+ * Obtiene el userId del usuario autenticado desde la cookie de sesión
+ * @param request - NextRequest con cookies
+ * @returns userId o null
+ */
+export async function getUserIdFromSession(
+  request: NextRequest
+): Promise<string | null> {
+  try {
+    const userSession = request.cookies.get("user-session");
+
+    if (!userSession) {
+      return null;
+    }
+
+    const sessionData = JSON.parse(userSession.value);
+    return sessionData.userId || sessionData.id || null;
+  } catch (error) {
+    console.error("Error parsing session cookie for userId:", error);
+    return null;
+  }
+}
+
+/**
+ * Obtiene userId y organizationId del usuario autenticado
+ * @param request - NextRequest
+ * @param supabase - Cliente de Supabase
+ * @returns Objeto con userId y organizationId, o null si no se puede obtener
+ */
+export async function getCurrentUserInfo(
+  request: NextRequest,
+  supabase: SupabaseClient
+): Promise<{ userId: string; organizationId: string } | null> {
+  try {
+    const userId = await getUserIdFromSession(request);
+    if (!userId) {
+      return null;
+    }
+
+    const organizationId = await getCurrentOrganizationId(
+      request,
+      supabase,
+      userId
+    );
+    if (!organizationId) {
+      return null;
+    }
+
+    return { userId, organizationId };
+  } catch (error) {
+    console.error("Error getting current user info:", error);
+    return null;
+  }
+}

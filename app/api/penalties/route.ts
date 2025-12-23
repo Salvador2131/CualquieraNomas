@@ -15,7 +15,9 @@ import { apiLogger } from "@/lib/logger";
 import {
   getCurrentOrganizationId,
   addOrganizationFilter,
+  getCurrentUserInfo,
 } from "@/lib/utils/api-organization-filter";
+import { logCreate, logUpdate } from "@/lib/business-rules";
 
 export const GET = withErrorHandling(async (request: NextRequest) => {
   // 1. Verificaciones de seguridad
@@ -211,6 +213,18 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    // Registrar auditoría
+    const userInfo = await getCurrentUserInfo(request, supabase);
+    if (userInfo) {
+      try {
+        await logCreate("penalty", data.id, userInfo.userId, data, supabase, {
+          organization_id: userInfo.organizationId,
+        });
+      } catch (auditError) {
+        console.error("Error logging audit for penalty creation:", auditError);
+      }
+    }
+
     return NextResponse.json({
       message: "Penalización creada exitosamente",
       penalty: data,
@@ -250,13 +264,19 @@ export async function PATCH(request: NextRequest) {
     // Verificar que la penalización pertenezca a la organización del usuario
     const { data: existingPenalty } = await supabase
       .from("penalties")
-      .select("organization_id")
+      .select("*")
       .eq("id", id)
       .single();
 
-    if (!existingPenalty || existingPenalty.organization_id !== organizationId) {
+    if (
+      !existingPenalty ||
+      existingPenalty.organization_id !== organizationId
+    ) {
       return NextResponse.json(
-        { message: "Penalización no encontrada o no pertenece a tu organización" },
+        {
+          message:
+            "Penalización no encontrada o no pertenece a tu organización",
+        },
         { status: 403 }
       );
     }
@@ -305,6 +325,24 @@ export async function PATCH(request: NextRequest) {
         updated_at: new Date().toISOString(),
       },
     });
+
+    // Registrar auditoría
+    const userInfo = await getCurrentUserInfo(request, supabase);
+    if (userInfo && existingPenalty) {
+      try {
+        await logUpdate(
+          "penalty",
+          id,
+          userInfo.userId,
+          existingPenalty,
+          data,
+          supabase,
+          { organization_id: userInfo.organizationId }
+        );
+      } catch (auditError) {
+        console.error("Error logging audit for penalty update:", auditError);
+      }
+    }
 
     return NextResponse.json({
       message: "Penalización actualizada exitosamente",

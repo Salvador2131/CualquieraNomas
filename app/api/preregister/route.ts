@@ -18,7 +18,9 @@ import { mainSecurityMiddleware } from "@/lib/middleware";
 import { apiLogger } from "@/lib/logger";
 import {
   getCurrentOrganizationId,
+  getCurrentUserInfo,
 } from "@/lib/utils/api-organization-filter";
+import { logCreate } from "@/lib/business-rules";
 
 export const POST = withErrorHandling(async (request: NextRequest) => {
   // 1. Verificaciones de seguridad
@@ -65,7 +67,7 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
   let organizationId = await getCurrentOrganizationId(request, supabase);
   if (!organizationId) {
     // Usar organización por defecto para preregistros públicos
-    organizationId = '00000000-0000-0000-0000-000000000001';
+    organizationId = "00000000-0000-0000-0000-000000000001";
   }
 
   // 5. Insertar preregistro en la base de datos (con organization_id)
@@ -113,7 +115,27 @@ export const POST = withErrorHandling(async (request: NextRequest) => {
     // No fallar la operación por error de notificación
   }
 
-  // 7. Log de éxito
+  // 7. Registrar auditoría (si hay usuario autenticado)
+  const userInfo = await getCurrentUserInfo(request, supabase);
+  if (userInfo) {
+    try {
+      await logCreate(
+        "preregistration",
+        data.id,
+        userInfo.userId,
+        data,
+        supabase,
+        { organization_id: userInfo.organizationId }
+      );
+    } catch (auditError) {
+      apiLogger.error(
+        "Error logging audit for preregistration creation",
+        auditError
+      );
+    }
+  }
+
+  // 8. Log de éxito
   apiLogger.info("Preregistration created successfully", {
     preregistrationId: data.id,
     clientEmail: validatedData.client_email,
