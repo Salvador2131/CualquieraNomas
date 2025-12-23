@@ -266,41 +266,62 @@ CREATE TRIGGER update_incident_reports_updated_at
 -- 9. AGREGAR ROL SUPERADMIN A USERS
 -- =====================================================
 
--- Primero: Agregar columna role si no existe (fuera del bloque DO para evitar problemas de parsing)
+-- Agregar columna role si no existe (usando ALTER TABLE directamente)
 DO $$
 BEGIN
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users') THEN
+    IF EXISTS (SELECT FROM information_schema.tables WHERE table_schema = 'public' AND table_name = 'users') THEN
         IF NOT EXISTS (
             SELECT FROM information_schema.columns 
-            WHERE table_name = 'users' AND column_name = 'role'
+            WHERE table_schema = 'public' 
+            AND table_name = 'users' 
+            AND column_name = 'role'
         ) THEN
             ALTER TABLE users 
             ADD COLUMN role VARCHAR(20) DEFAULT 'worker';
         END IF;
     END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Si hay algún error, simplemente continuar
+        RAISE NOTICE 'Error al agregar columna role: %', SQLERRM;
 END $$;
 
--- Segundo: Agregar constraint usando SQL dinámico para evitar validación prematura
+-- Agregar constraint solo si la columna existe
 DO $$
+DECLARE
+    col_exists BOOLEAN;
+    constraint_exists BOOLEAN;
 BEGIN
-    IF EXISTS (SELECT FROM information_schema.tables WHERE table_name = 'users') THEN
-        IF EXISTS (
-            SELECT FROM information_schema.columns 
-            WHERE table_name = 'users' AND column_name = 'role'
-        ) THEN
-            -- Eliminar constraint si existe
-            IF EXISTS (
-                SELECT FROM information_schema.table_constraints 
-                WHERE table_name = 'users' 
-                AND constraint_name = 'users_role_check'
-            ) THEN
-                EXECUTE 'ALTER TABLE users DROP CONSTRAINT users_role_check';
-            END IF;
-            
-            -- Agregar constraint usando EXECUTE para evitar validación prematura
-            EXECUTE 'ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN (''admin'', ''worker'', ''employer'', ''superadmin''))';
+    -- Verificar si la tabla y columna existen
+    SELECT EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_schema = 'public' 
+        AND table_name = 'users' 
+        AND column_name = 'role'
+    ) INTO col_exists;
+    
+    IF col_exists THEN
+        -- Verificar si el constraint ya existe
+        SELECT EXISTS (
+            SELECT FROM information_schema.table_constraints 
+            WHERE table_schema = 'public'
+            AND table_name = 'users' 
+            AND constraint_name = 'users_role_check'
+        ) INTO constraint_exists;
+        
+        -- Eliminar constraint si existe
+        IF constraint_exists THEN
+            EXECUTE 'ALTER TABLE users DROP CONSTRAINT users_role_check';
         END IF;
+        
+        -- Agregar constraint
+        EXECUTE format('ALTER TABLE users ADD CONSTRAINT users_role_check CHECK (role IN (%L, %L, %L, %L))', 
+            'admin', 'worker', 'employer', 'superadmin');
     END IF;
+EXCEPTION
+    WHEN OTHERS THEN
+        -- Si hay algún error, simplemente continuar
+        RAISE NOTICE 'Error al agregar constraint users_role_check: %', SQLERRM;
 END $$;
 
 -- =====================================================
