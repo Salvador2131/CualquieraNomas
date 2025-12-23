@@ -99,10 +99,41 @@ CREATE TABLE IF NOT EXISTS events (
     updated_at TIMESTAMP WITH TIME ZONE DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_events_fecha_evento ON events(fecha_evento);
-CREATE INDEX IF NOT EXISTS idx_events_estado ON events(estado);
-CREATE INDEX IF NOT EXISTS idx_events_employer_id ON events(employer_id);
-CREATE INDEX IF NOT EXISTS idx_events_tipo_evento ON events(tipo_evento);
+-- Crear índices solo si las columnas existen
+DO $$
+BEGIN
+    -- Índice para fecha_evento (si existe la columna)
+    IF EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'events' AND column_name = 'fecha_evento'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_events_fecha_evento ON events(fecha_evento);
+    END IF;
+    
+    -- Índice para estado (si existe la columna)
+    IF EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'events' AND column_name = 'estado'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_events_estado ON events(estado);
+    END IF;
+    
+    -- Índice para employer_id (si existe la columna)
+    IF EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'events' AND column_name = 'employer_id'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_events_employer_id ON events(employer_id);
+    END IF;
+    
+    -- Índice para tipo_evento (si existe la columna)
+    IF EXISTS (
+        SELECT FROM information_schema.columns 
+        WHERE table_name = 'events' AND column_name = 'tipo_evento'
+    ) THEN
+        CREATE INDEX IF NOT EXISTS idx_events_tipo_evento ON events(tipo_evento);
+    END IF;
+END $$;
 
 -- =====================================================
 -- 5. TABLA PREREGISTRATIONS (Preregistros/Leads)
