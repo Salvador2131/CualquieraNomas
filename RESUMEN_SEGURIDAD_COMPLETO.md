@@ -3,6 +3,7 @@
 ## 🔒 Estado de Vulnerabilidades
 
 ### Verificación Completa:
+
 - ✅ **Next.js**: `16.0.10` (versión parcheada oficial según Vercel)
 - ✅ **React**: `19.2.3` (versión parcheada)
 - ✅ **React DOM**: `19.2.3` (versión parcheada)
@@ -10,6 +11,7 @@
 - ✅ **fix-react2shell-next**: No vulnerable packages found
 
 ### Vulnerabilidades Verificadas:
+
 1. ✅ **CVE-2025-66478** (crítica): RCE - **NO VULNERABLE**
 2. ✅ **CVE-2025-55184** (alta): DoS - **NO VULNERABLE**
 3. ✅ **CVE-2025-55183** (media): Exposición de código - **NO VULNERABLE**
@@ -20,11 +22,13 @@
 ## 🔄 Acciones Completadas
 
 ### 1. Actualización de Next.js
+
 - ✅ Actualizado de versiones vulnerables a `16.0.10`
 - ✅ Versión específicamente mencionada como parcheada en guía oficial de Vercel
 - ✅ Verificado con herramientas oficiales
 
 ### 2. Rotación de Secrets
+
 - ✅ Guía creada: `GUIA_ROTAR_SECRETS.md`
 - ✅ Script creado: `scripts/generar-nuevos-secrets.js`
 - ✅ Nuevos secrets generados:
@@ -33,11 +37,13 @@
   - `SUPABASE_SERVICE_ROLE_KEY`: Debe rotarse en Supabase Dashboard
 
 ### 3. Deployment
+
 - ✅ Push a GitHub completado
 - ✅ Deployment automático en Vercel activado
 - ✅ Guía de verificación creada: `VERIFICAR_DEPLOYMENT_VERCEL.md`
 
 ### 4. Protección de Deployment
+
 - ✅ Guía creada: `ACTIVAR_PROTECCION_DEPLOYMENT_VERCEL.md`
 - ⚠️ Pendiente: Activar Standard Protection en Vercel Dashboard
 
@@ -48,23 +54,31 @@
 Si después del nuevo deployment Vercel sigue mostrando la advertencia de vulnerabilidad, puede ser:
 
 ### Causa 1: Cache de Vercel
+
 **Solución:**
+
 - Espera 5-10 minutos después del deployment
 - Vercel puede tardar en actualizar la detección
 
 ### Causa 2: Deployment Anterior Aún Activo
+
 **Solución:**
+
 1. Ve a Vercel Dashboard → Deployments
 2. Verifica que el último deployment use Next.js 16.0.10
 3. Si hay un deployment anterior activo, promueve el nuevo a producción
 
 ### Causa 3: Versión en package-lock.json
+
 **Solución:**
+
 - El `package-lock.json` ya está actualizado con Next.js 16.0.10
 - El deployment debería usar esta versión
 
 ### Causa 4: Dependencia Transitiva
+
 **Solución:**
+
 - Ya verificamos que no hay dependencias vulnerables
 - `react-server-dom-*` no están instaladas directamente (vienen con Next.js)
 
@@ -88,15 +102,18 @@ Si después del nuevo deployment Vercel sigue mostrando la advertencia de vulner
 ## 🚀 Próximos Pasos
 
 1. **Verificar deployment en Vercel:**
+
    - Ve a: https://vercel.com/dashboard
    - Revisa el último deployment
    - Verifica que use Next.js 16.0.10
 
 2. **Actualizar secrets en Vercel (si aún no lo hiciste):**
+
    - Ve a: Settings → Environment Variables
    - Actualiza los 3 secrets críticos
 
 3. **Activar protección de deployment:**
+
    - Sigue la guía: `ACTIVAR_PROTECCION_DEPLOYMENT_VERCEL.md`
 
 4. **Monitorear:**
@@ -109,6 +126,7 @@ Si después del nuevo deployment Vercel sigue mostrando la advertencia de vulner
 ## 📞 Contacto
 
 Si después de todas estas verificaciones Vercel sigue mostrando la advertencia:
+
 - Contacta a: security@vercel.com
 - Menciona que ya actualizaste a Next.js 16.0.10
 - Incluye el resultado de `npx fix-react2shell-next`
@@ -118,6 +136,7 @@ Si después de todas estas verificaciones Vercel sigue mostrando la advertencia:
 ## ✅ Conclusión
 
 El proyecto está **completamente parcheado y seguro** según todas las verificaciones:
+
 - Versiones correctas instaladas
 - Herramientas oficiales confirman que no hay vulnerabilidades
 - Secrets listos para rotar
