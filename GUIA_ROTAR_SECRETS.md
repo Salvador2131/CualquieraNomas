@@ -7,11 +7,13 @@ Si tu aplicación estuvo online y sin parchear desde el **4 de diciembre de 2025
 ## 📋 Secrets que Necesitan Rotarse
 
 ### Secrets Críticos (Rotar PRIMERO):
+
 1. ✅ **SUPABASE_SERVICE_ROLE_KEY** - Acceso completo a la base de datos
 2. ✅ **JWT_SECRET** - Autenticación y tokens
 3. ✅ **ENCRYPTION_KEY** - Encriptación de datos sensibles
 
 ### Secrets Importantes:
+
 4. **SMTP_PASS** (si está configurado) - Acceso a email
 5. **CRON_SECRET** (si está configurado) - Protección de cron jobs
 6. Cualquier otro secret que use tu aplicación
@@ -48,17 +50,20 @@ Si tu aplicación estuvo online y sin parchear desde el **4 de diciembre de 2025
 ### Generar un nuevo JWT Secret seguro:
 
 **Opción A: Usar OpenSSL (recomendado)**
+
 ```bash
 # Generar un secret seguro de 64 caracteres
 openssl rand -hex 32
 ```
 
 **Opción B: Usar Node.js**
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ```
 
 **Opción C: Usar PowerShell (Windows)**
+
 ```powershell
 # Generar un secret seguro
 -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 64 | ForEach-Object {[char]$_})
@@ -80,17 +85,20 @@ node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
 ### Generar un nuevo Encryption Key:
 
 **Opción A: Usar OpenSSL**
+
 ```bash
 # Generar un key de 32 caracteres (256 bits)
 openssl rand -hex 16
 ```
 
 **Opción B: Usar Node.js**
+
 ```bash
 node -e "console.log(require('crypto').randomBytes(16).toString('hex'))"
 ```
 
 **Opción C: Usar PowerShell (Windows)**
+
 ```powershell
 # Generar un key de 32 caracteres
 -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 32 | ForEach-Object {[char]$_})
@@ -139,6 +147,7 @@ Después de actualizar en Vercel, actualiza tu archivo local:
 Después de rotar todos los secrets:
 
 1. **Haz un nuevo deployment en Vercel:**
+
    - Puede ser automático si haces push a GitHub
    - O manual desde Vercel Dashboard → **Deployments** → **"Redeploy"**
 
@@ -167,10 +176,12 @@ Después de rotar todos los secrets:
 ## ⚠️ IMPORTANTE: Después de Rotar
 
 1. **Invalidar sesiones existentes:**
+
    - Los usuarios deberán hacer login nuevamente
    - Los tokens JWT antiguos ya no funcionarán
 
 2. **Verificar funcionalidad:**
+
    - Probar autenticación
    - Probar operaciones críticas
    - Verificar que no hay errores en logs
@@ -184,11 +195,13 @@ Después de rotar todos los secrets:
 ## 🔍 Verificar que los Secrets Están Actualizados
 
 ### En Vercel:
+
 1. Ve a: **Settings** → **Environment Variables**
 2. Verifica que todos los valores están actualizados
 3. Verifica que están disponibles en los ambientes correctos
 
 ### En Supabase:
+
 1. Ve a: **Settings** → **API**
 2. Verifica que el `service_role` key es diferente al anterior
 
