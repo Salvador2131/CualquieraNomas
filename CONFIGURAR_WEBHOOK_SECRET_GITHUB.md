@@ -13,10 +13,12 @@ GitHub te está pidiendo un **"Secret"** al crear el webhook manualmente.
 ### Opción A: Dejar Vacío (Más Simple)
 
 1. **En el campo "Secret" de GitHub:**
+
    - **Déjalo vacío** (no escribas nada)
    - Haz clic en **"Add webhook"**
 
 2. **Esto debería funcionar** porque:
+
    - Vercel no requiere secret para webhooks creados manualmente
    - El deploy hook de Vercel ya tiene su propia autenticación
    - GitHub solo valida que la URL sea accesible
@@ -47,6 +49,7 @@ Puedes generar un secret aleatorio. Ejecuta esto en tu terminal:
 O usa un generador online: https://www.random.org/strings/
 
 **Ejemplo de secret generado:**
+
 ```
 aB3xK9mP2qR7vN4wT8yU6zA1bC5dE9fG
 ```
@@ -62,6 +65,7 @@ aB3xK9mP2qR7vN4wT8yU6zA1bC5dE9fG
 **⚠️ Nota:** Vercel generalmente NO requiere configurar el secret en su lado cuando usas deploy hooks. El secret es solo para que GitHub valide que las peticiones vienen de GitHub.
 
 **Si Vercel te pide el secret:**
+
 1. Ve a: https://vercel.com/salvador-berniers-projects/cualquiera-nomas/settings/git
 2. Busca la configuración del deploy hook
 3. Si hay un campo para "Webhook Secret", pega el mismo secret que usaste en GitHub
@@ -82,23 +86,28 @@ URL: https://github.com/Salvador2131/CualquieraNomas/settings/hooks
 
 ### 3. Configura el Webhook:
 
-- **Payload URL:** 
+- **Payload URL:**
+
   ```
   https://api.vercel.com/v1/integrations/deploy/...
   ```
+
   (Pega la URL del deploy hook que copiaste de Vercel)
 
-- **Content type:** 
+- **Content type:**
+
   ```
   application/json
   ```
 
-- **Secret:** 
+- **Secret:**
+
   ```
   (Déjalo vacío O usa un secret generado)
   ```
 
 - **Which events would you like to trigger this webhook?**
+
   - Selecciona: **"Just the push event"** (recomendado)
   - O: **"Let me select individual events"** y marca:
     - ✅ Push
@@ -113,12 +122,14 @@ URL: https://github.com/Salvador2131/CualquieraNomas/settings/hooks
 Después de crear el webhook:
 
 1. **GitHub intentará enviar un "ping"**
+
    - Deberías ver un ✅ verde: "We sent a ping payload to this endpoint"
    - Si ves un ❌ rojo, verifica:
      - Que la URL del deploy hook sea correcta
      - Que el deploy hook esté activo en Vercel
 
 2. **Haz un push de prueba:**
+
    ```bash
    echo "# Test webhook con secret" >> README.md
    git add README.md
@@ -127,6 +138,7 @@ Después de crear el webhook:
    ```
 
 3. **Verifica en Vercel:**
+
    - Deberías ver un nuevo deployment iniciándose automáticamente (dentro de 10-30 segundos)
 
 4. **Verifica en GitHub:**
@@ -142,10 +154,12 @@ Después de crear el webhook:
 **Posibles causas:**
 
 1. **URL incorrecta:**
+
    - Verifica que la URL del deploy hook sea correcta
    - Asegúrate de copiar la URL completa desde Vercel
 
 2. **Deploy hook no existe o está inactivo:**
+
    - Ve a Vercel → Settings → Git
    - Verifica que el deploy hook esté activo
 
@@ -155,6 +169,7 @@ Después de crear el webhook:
 ### Error: "Invalid secret" o "Secret mismatch"
 
 **Solución:**
+
 - Si usaste un secret, verifica que sea el mismo en ambos lados (si Vercel lo requiere)
 - O simplemente elimina el secret y déjalo vacío
 
@@ -177,6 +192,7 @@ Después de crear el webhook:
 **Documento creado:** `CONFIGURAR_WEBHOOK_SECRET_GITHUB.md`
 
 **Siguiente paso:**
+
 1. En GitHub, deja el campo "Secret" vacío
 2. Completa los demás campos (Payload URL, Content type, Events)
 3. Haz clic en "Add webhook"
