@@ -20,11 +20,13 @@
 ### 1.1 Configuración Actual
 
 **Repositorio Remoto:**
+
 ```
 Origin: https://github.com/Salvador2131/CualquieraNomas.git
 ```
 
 **Branch Principal:**
+
 ```
 main (local y remoto)
 ```
@@ -32,6 +34,7 @@ main (local y remoto)
 ### 1.2 Verificar Conexión
 
 **Comando:**
+
 ```bash
 git remote -v
 git branch -a
@@ -39,6 +42,7 @@ git status
 ```
 
 **Debería mostrar:**
+
 - ✅ `origin` apunta a GitHub
 - ✅ Branch `main` existe
 - ✅ Sin errores de conexión
@@ -46,10 +50,12 @@ git status
 ### 1.3 Autenticación
 
 **Método:** HTTPS (con credenciales de GitHub)
+
 - Usuario: Salvador2131
 - Repositorio: CualquieraNomas
 
 **Verificar:**
+
 ```bash
 git ls-remote origin
 ```
@@ -64,6 +70,7 @@ Si falla → ❌ Problema de autenticación
 ### 2.1 Estado Actual
 
 **⚠️ PROBLEMA IDENTIFICADO:**
+
 - No hay webhook configurado en GitHub
 - No hay deployments automáticos cuando haces push
 
@@ -72,11 +79,13 @@ Si falla → ❌ Problema de autenticación
 **URL:** https://github.com/Salvador2131/CualquieraNomas/settings/hooks
 
 **¿Qué buscar?**
+
 - Webhook de Vercel con URL: `https://api.vercel.com/v1/integrations/deploy/...`
 - Estado: Activo
 - Eventos: Push, Pull Request
 
 **Si NO existe:**
+
 - ❌ Esta es la razón por la que no hay deployments automáticos
 - Necesitas conectar el repositorio en Vercel Dashboard
 
@@ -85,11 +94,13 @@ Si falla → ❌ Problema de autenticación
 **URL:** https://vercel.com/salvador-berniers-projects/cualquiera-nomas/settings/git
 
 **¿Qué buscar?**
+
 - Repositorio conectado: `Salvador2131/CualquieraNomas`
 - Production Branch: `main`
 - Automatic Deployments: Habilitado
 
 **Si NO está conectado:**
+
 1. Click en **"Connect Git Repository"**
 2. Selecciona **GitHub**
 3. Selecciona: **Salvador2131/CualquieraNomas**
@@ -106,20 +117,24 @@ Si falla → ❌ Problema de autenticación
 **Variables Requeridas:**
 
 #### Públicas (Production, Preview, Development):
+
 - `NEXT_PUBLIC_SUPABASE_URL` = `https://hjtarzunzoedgpbsniqc.supabase.co`
 - `NEXT_PUBLIC_SUPABASE_ANON_KEY` = `sb_publishable_gZ0f-x1z89Xs9LR5mVpYbw_HEaRvjGz`
 
 #### Privadas (Solo Production):
+
 - `SUPABASE_SERVICE_ROLE_KEY` = `ADJYApVe1nGwmpkDs6UaDAYPrl4fbBVnudCati08FfiawMgCvdmblJZVFLMD+9f+Uw+k497GmkFjLUV58PQ+aw==`
 
 ### 3.2 Verificar Conexión
 
 **Endpoint de Health:**
+
 ```
 https://cualquiera-nomas-salvador-berniers-projects.vercel.app/api/health/supabase
 ```
 
 **Debería devolver:**
+
 ```json
 {
   "status": "success",
@@ -131,10 +146,12 @@ https://cualquiera-nomas-salvador-berniers-projects.vercel.app/api/health/supaba
 ### 3.3 Configuración en Código
 
 **Archivo:** `lib/supabase.ts`
+
 - Usa `NEXT_PUBLIC_SUPABASE_URL`
 - Usa `NEXT_PUBLIC_SUPABASE_ANON_KEY`
 
 **Archivo:** `lib/config/env.ts`
+
 - Valida todas las variables de entorno
 - Proporciona acceso centralizado
 
@@ -147,6 +164,7 @@ https://cualquiera-nomas-salvador-berniers-projects.vercel.app/api/health/supaba
 **Archivo:** `.github/workflows/supabase-migrations.yml`
 
 **Se ejecuta cuando:**
+
 - Push a `main` o `develop`
 - Y hay cambios en `supabase/migrations/**`
 
@@ -155,6 +173,7 @@ https://cualquiera-nomas-salvador-berniers-projects.vercel.app/api/health/supaba
 **URL:** https://github.com/Salvador2131/CualquieraNomas/settings/secrets/actions
 
 **Secrets Necesarios:**
+
 1. `SUPABASE_ACCESS_TOKEN` - Token de acceso de Supabase
 2. `SUPABASE_PROJECT_REF` - `hjtarzunzoedgpbsniqc`
 3. `SUPABASE_DB_PASSWORD` - Contraseña de la base de datos (opcional)
@@ -164,11 +183,13 @@ https://cualquiera-nomas-salvador-berniers-projects.vercel.app/api/health/supaba
 **URL:** https://github.com/Salvador2131/CualquieraNomas/actions
 
 **Busca:**
+
 - Workflow: **"Supabase Migrations"**
 - Última ejecución
 - Estado: ✅ Success o ❌ Failed
 
 **Si no se ejecuta:**
+
 - Verifica que los secrets estén configurados
 - Verifica que haya cambios en `supabase/migrations/**`
 
@@ -181,6 +202,7 @@ https://cualquiera-nomas-salvador-berniers-projects.vercel.app/api/health/supaba
 **Archivo:** `.env.local` (no está en git, solo local)
 
 **Valores desde `env.local.example`:**
+
 ```
 NEXT_PUBLIC_SUPABASE_URL=https://hjtarzunzoedgpbsniqc.supabase.co
 NEXT_PUBLIC_SUPABASE_ANON_KEY=sb_publishable_gZ0f-x1z89Xs9LR5mVpYbw_HEaRvjGz
@@ -190,10 +212,12 @@ SUPABASE_SERVICE_ROLE_KEY=ADJYApVe1nGwmpkDs6UaDAYPrl4fbBVnudCati08FfiawMgCvdmblJ
 ### 5.2 Supabase CLI (Opcional)
 
 **Configuración:** `supabase/config.toml`
+
 - Project ID: Configurado con `supabase link`
 - Local development: Puerto 54321
 
 **Verificar:**
+
 ```bash
 supabase status
 ```
@@ -203,11 +227,13 @@ supabase status
 ## 📋 Checklist de Verificación Completa
 
 ### Cursor → GitHub
+
 - [ ] `git remote -v` muestra GitHub correcto
 - [ ] `git push origin main` funciona
 - [ ] Branch `main` está sincronizado
 
 ### GitHub → Vercel
+
 - [ ] Webhook existe en GitHub (Settings → Webhooks)
 - [ ] Webhook está activo (última entrega exitosa)
 - [ ] Repositorio conectado en Vercel Dashboard
@@ -216,6 +242,7 @@ supabase status
 - [ ] Push a GitHub crea deployment automático en Vercel
 
 ### Vercel → Supabase
+
 - [ ] Variables de entorno configuradas en Vercel
 - [ ] `NEXT_PUBLIC_SUPABASE_URL` correcta
 - [ ] `NEXT_PUBLIC_SUPABASE_ANON_KEY` correcta
@@ -224,6 +251,7 @@ supabase status
 - [ ] La app en Vercel se conecta a Supabase
 
 ### GitHub → Supabase (GitHub Actions)
+
 - [ ] Workflow existe: `.github/workflows/supabase-migrations.yml`
 - [ ] Secrets configurados en GitHub:
   - [ ] `SUPABASE_ACCESS_TOKEN`
@@ -233,6 +261,7 @@ supabase status
 - [ ] Última ejecución fue exitosa
 
 ### Cursor → Supabase (Local)
+
 - [ ] `.env.local` existe y tiene valores correctos
 - [ ] `npm run dev` funciona localmente
 - [ ] `/api/health/supabase` responde en localhost
@@ -243,6 +272,7 @@ supabase status
 ## 🔍 Comandos de Verificación Rápida
 
 ### Verificar Cursor → GitHub
+
 ```bash
 git remote -v
 git status
@@ -250,6 +280,7 @@ git log --oneline -5
 ```
 
 ### Verificar GitHub → Vercel
+
 ```bash
 # Ver webhooks en GitHub (manual)
 # https://github.com/Salvador2131/CualquieraNomas/settings/hooks
@@ -259,18 +290,21 @@ vercel ls
 ```
 
 ### Verificar Vercel → Supabase
+
 ```bash
 # Verificar endpoint de health
 curl https://cualquiera-nomas-salvador-berniers-projects.vercel.app/api/health/supabase
 ```
 
 ### Verificar GitHub → Supabase
+
 ```bash
 # Ver workflow runs
 # https://github.com/Salvador2131/CualquieraNomas/actions
 ```
 
 ### Verificar Cursor → Supabase (Local)
+
 ```bash
 # Verificar variables de entorno
 node scripts/verificar-conexiones.js
@@ -285,11 +319,13 @@ npm run dev
 ## 🛠️ Script de Verificación Automática
 
 **Ejecutar:**
+
 ```bash
 node scripts/verificar-conexiones.js
 ```
 
 **Verifica:**
+
 - ✅ Variables de entorno locales
 - ✅ Conexión con Supabase
 - ✅ Conexión con Vercel (si proporcionas URL)
@@ -299,12 +335,15 @@ node scripts/verificar-conexiones.js
 ## ⚠️ Problemas Identificados
 
 ### 1. GitHub → Vercel: NO CONECTADO
+
 **Problema:** No hay webhook, no hay deployments automáticos
 **Solución:** Conectar repositorio en Vercel Dashboard
 
 ### 2. Vercel: Advertencias de Versión Vulnerable
+
 **Problema:** Vercel detecta versión vulnerable aunque el código tiene 16.0.10
 **Posibles causas:**
+
 - Cache de build
 - Deployment anterior aún activo
 - package-lock.json desincronizado
@@ -316,6 +355,7 @@ node scripts/verificar-conexiones.js
 ## 📝 URLs Importantes
 
 ### GitHub
+
 - Repositorio: https://github.com/Salvador2131/CualquieraNomas
 - Settings: https://github.com/Salvador2131/CualquieraNomas/settings
 - Webhooks: https://github.com/Salvador2131/CualquieraNomas/settings/hooks
@@ -323,6 +363,7 @@ node scripts/verificar-conexiones.js
 - Actions: https://github.com/Salvador2131/CualquieraNomas/actions
 
 ### Vercel
+
 - Dashboard: https://vercel.com/dashboard
 - Proyecto: https://vercel.com/salvador-berniers-projects/cualquiera-nomas
 - Settings: https://vercel.com/salvador-berniers-projects/cualquiera-nomas/settings
@@ -332,6 +373,7 @@ node scripts/verificar-conexiones.js
 - Security Actions: https://vercel.com/dashboard/security-actions
 
 ### Supabase
+
 - Dashboard: https://supabase.com/dashboard
 - Proyecto: https://supabase.com/dashboard/project/hjtarzunzoedgpbsniqc
 - API Settings: https://supabase.com/dashboard/project/hjtarzunzoedgpbsniqc/settings/api
@@ -342,14 +384,17 @@ node scripts/verificar-conexiones.js
 ## 🎯 Próximos Pasos Recomendados
 
 1. **Conectar GitHub → Vercel** (PRIORIDAD ALTA)
+
    - Esto habilitará deployments automáticos
    - Creará el webhook automáticamente
 
 2. **Verificar Variables de Entorno en Vercel**
+
    - Asegurar que todas estén configuradas
    - Verificar valores correctos
 
 3. **Verificar GitHub Actions Secrets**
+
    - Asegurar que migraciones se ejecuten automáticamente
 
 4. **Resolver Advertencias de Vercel**
